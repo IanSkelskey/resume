@@ -165,13 +165,13 @@ function getResumeAggregate(id){
   if(!base) return null;
   const skills = db.prepare(`SELECT rs.skill_id as id FROM resume_skills rs WHERE rs.resume_id = ? ORDER BY rs.ord`).all(id).map(r=>r.id);
   const experiences = db.prepare(`SELECT e.* FROM resume_experiences re JOIN experiences e ON e.id = re.experience_id WHERE re.resume_id = ? ORDER BY re.ord`).all(id).map(r=>({
-    role: r.role, company: r.company, location: r.location || undefined, start: r.start, end: r.end, bullets: JSON.parse(r.bullets||'[]')
+    id: r.id, role: r.role, company: r.company, location: r.location || undefined, start: r.start, end: r.end, bullets: JSON.parse(r.bullets||'[]')
   }));
   const education = db.prepare(`SELECT ed.* FROM resume_education re JOIN education ed ON ed.id = re.education_id WHERE re.resume_id = ? ORDER BY re.ord`).all(id).map(r=>({
-    institution: r.institution, degree: r.degree, end: r.end
+    id: r.id, institution: r.institution, degree: r.degree, end: r.end
   }));
   const projects = db.prepare(`SELECT p.* FROM resume_projects rp JOIN projects p ON p.id = rp.project_id WHERE rp.resume_id = ? ORDER BY rp.ord`).all(id).map(r=>({
-    name: r.name, description: r.description || '', link: r.link || '', bullets: JSON.parse(r.bullets||'[]')
+    id: r.id, name: r.name, description: r.description || '', link: r.link || '', bullets: JSON.parse(r.bullets||'[]')
   }));
   return {
     id: base.id,
@@ -240,21 +240,21 @@ function updateResume(id, payload){
   if('experiences' in payload){
     db.prepare('DELETE FROM resume_experiences WHERE resume_id = ?').run(id);
     (payload.experiences||[]).forEach((e,i)=>{
-      const eid = typeof e === 'number' ? e : createExperience(e);
+      const eid = typeof e === 'number' ? e : (e.id || createExperience(e));
       db.prepare('INSERT OR IGNORE INTO resume_experiences (resume_id, experience_id, ord) VALUES (?,?,?)').run(id, eid, i);
     });
   }
   if('education' in payload){
     db.prepare('DELETE FROM resume_education WHERE resume_id = ?').run(id);
     (payload.education||[]).forEach((e,i)=>{
-      const edid = typeof e === 'number' ? e : createEducation(e);
+      const edid = typeof e === 'number' ? e : (e.id || createEducation(e));
       db.prepare('INSERT OR IGNORE INTO resume_education (resume_id, education_id, ord) VALUES (?,?,?)').run(id, edid, i);
     });
   }
   if('projects' in payload){
     db.prepare('DELETE FROM resume_projects WHERE resume_id = ?').run(id);
     (payload.projects||[]).forEach((p,i)=>{
-      const pid = typeof p === 'number' ? p : createProject(p);
+      const pid = typeof p === 'number' ? p : (p.id || createProject(p));
       db.prepare('INSERT OR IGNORE INTO resume_projects (resume_id, project_id, ord) VALUES (?,?,?)').run(id, pid, i);
     });
   }
