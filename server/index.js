@@ -6,7 +6,7 @@ const {
   create: createResume,
   update: updateResume,
   listSkills, createSkillEntity, deleteSkill,
-  listExperiences, createExperienceEntity, deleteExperience,
+  listExperiences, createExperienceEntity, updateExperienceEntity, deleteExperience,
   listEducation, createEducationEntity, deleteEducation,
   listProjects, createProjectEntity, deleteProject,
   listSocials, createSocialEntity, deleteSocial,
@@ -76,6 +76,7 @@ app.post('/api/skills', (req,res)=> res.json(createSkillEntity(req.body)));
 app.delete('/api/skills/:id', (req,res)=> { deleteSkill(Number(req.params.id)); res.json({success:true}); });
 app.get('/api/experiences', (_,res)=> res.json(listExperiences()));
 app.post('/api/experiences', (req,res)=> res.json(createExperienceEntity(req.body)));
+app.put('/api/experiences/:id', (req,res)=> res.json(updateExperienceEntity(Number(req.params.id), req.body)));
 app.delete('/api/experiences/:id', (req,res)=> { deleteExperience(Number(req.params.id)); res.json({success:true}); });
 app.get('/api/education', (_,res)=> res.json(listEducation()));
 app.post('/api/education', (req,res)=> res.json(createEducationEntity(req.body)));

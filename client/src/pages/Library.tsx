@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { listSkills, createSkill, listExperiences, createExperience, listEducation, createEducation, listProjects, createProject, listSocials, createSocial, listContacts, createContact, updateContact, deleteSkill, deleteExperience, deleteEducation, deleteProject, deleteSocial, deleteContact } from '../api';
+import { listSkills, createSkill, listExperiences, createExperience, updateExperience, listEducation, createEducation, listProjects, createProject, listSocials, createSocial, listContacts, createContact, updateContact, deleteSkill, deleteExperience, deleteEducation, deleteProject, deleteSocial, deleteContact } from '../api';
 import type { Skill, ExperienceEntity, EducationEntity, ProjectEntity, SocialLink, ContactInfo } from '../types';
 import Modal, { ConfirmModal } from '../components/Modal';
 
@@ -14,6 +14,7 @@ export default function Library(){
   const [activeTab, setActiveTab] = useState<'skills'|'experiences'|'education'|'projects'|'contacts'|'socials'>('skills');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingContact, setEditingContact] = useState<(ContactInfo & {id: number}) | null>(null);
+  const [editingExperience, setEditingExperience] = useState<ExperienceEntity | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{show: boolean; message: string; onConfirm: () => void | Promise<void>}>({show: false, message: '', onConfirm: () => {}});
 
   useEffect(()=>{ refresh(); },[]);
@@ -42,16 +43,23 @@ export default function Library(){
       const fd = new FormData(e.currentTarget);
       const exp: ExperienceEntity = {
         role: String(fd.get('role')||''), company: String(fd.get('company')||''), location: String(fd.get('location')||'') || undefined,
+        work_type: (fd.get('work_type') as 'remote'|'on-site'|'hybrid') || undefined,
         start: String(fd.get('start')||''), end: String(fd.get('end')||''), bullets: String(fd.get('bullets')||'').split('\n').filter(Boolean)
       };
-      await createExperience(exp);
+      if (editingExperience) {
+        await updateExperience(editingExperience.id!, exp);
+        toast.success('Experience updated successfully');
+        setEditingExperience(null);
+      } else {
+        await createExperience(exp);
+        toast.success('Experience added successfully');
+      }
       const form = e.currentTarget;
       if (form) form.reset();
       refresh();
       setShowAddModal(false);
-      toast.success('Experience added successfully');
     } catch (error) {
-      toast.error('Failed to add experience');
+      toast.error(editingExperience ? 'Failed to update experience' : 'Failed to add experience');
     }
   }
   async function addEducation(e: React.FormEvent<HTMLFormElement>){
@@ -187,7 +195,10 @@ export default function Library(){
             {experiences.map(e=> (
               <li key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <span><strong>{e.role}</strong> – {e.company} ({e.start}–{e.end})</span>
-                <button className="danger" onClick={() => handleDelete(`Delete experience "${e.role}"?`, async () => { await deleteExperience(e.id!); refresh(); })} style={{fontSize:12,padding:'4px 8px'}}>Delete</button>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={() => { setEditingExperience(e); setShowAddModal(true); }} style={{fontSize:12,padding:'4px 8px'}}>Edit</button>
+                  <button className="danger" onClick={() => handleDelete(`Delete experience "${e.role}"?`, async () => { await deleteExperience(e.id!); refresh(); })} style={{fontSize:12,padding:'4px 8px'}}>Delete</button>
+                </div>
               </li>
             ))}
           </ul>
@@ -293,17 +304,25 @@ export default function Library(){
       )}
 
       {showAddModal && activeTab === 'experiences' && (
-        <Modal isOpen={true} onClose={() => setShowAddModal(false)} title="Add New Experience" size="large">
+        <Modal isOpen={true} onClose={() => { setShowAddModal(false); setEditingExperience(null); }} title={editingExperience ? "Edit Experience" : "Add New Experience"} size="large">
           <form onSubmit={addExperience}>
-            <label>Role<input name="role" required /></label>
-            <label>Company<input name="company" required /></label>
+            <label>Role<input name="role" defaultValue={editingExperience?.role} required /></label>
+            <label>Company<input name="company" defaultValue={editingExperience?.company} required /></label>
             <div style={{display:'flex',gap:8}}>
-              <label>Location<input name="location"/></label>
-              <label>Start<input name="start" placeholder="e.g., Jan 2020" required /></label>
-              <label>End<input name="end" placeholder="e.g., Dec 2022" required /></label>
+              <label>Location<input name="location" defaultValue={editingExperience?.location}/></label>
+              <label>Work Type<select name="work_type" defaultValue={editingExperience?.work_type || ''}>
+                <option value="">--</option>
+                <option value="remote">Remote</option>
+                <option value="on-site">On-site</option>
+                <option value="hybrid">Hybrid</option>
+              </select></label>
             </div>
-            <label>Bullets<textarea name="bullets" rows={4} placeholder="One per line"/></label>
-            <button type="submit" style={{marginTop:16}}>Add Experience</button>
+            <div style={{display:'flex',gap:8}}>
+              <label>Start<input name="start" placeholder="e.g., Jan 2020" defaultValue={editingExperience?.start} required /></label>
+              <label>End<input name="end" placeholder="e.g., Dec 2022" defaultValue={editingExperience?.end} required /></label>
+            </div>
+            <label>Bullets<textarea name="bullets" rows={4} placeholder="One per line" defaultValue={editingExperience?.bullets?.join('\n')}/></label>
+            <button type="submit" style={{marginTop:16}}>{editingExperience ? 'Update Experience' : 'Add Experience'}</button>
           </form>
         </Modal>
       )}

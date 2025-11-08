@@ -5,6 +5,7 @@ export interface ExperienceEntity {
   role: string;
   company: string;
   location?: string;
+  work_type?: 'remote' | 'on-site' | 'hybrid';
   start: string;
   end: string;
   bullets: string[];

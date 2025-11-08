@@ -93,7 +93,12 @@ export default function Preview(){
                   if(!ex) return null;
                   return (
                     <div key={i} className="exp-item">
-                      <div className="exp-head"><strong>{ex.role}</strong> – {ex.company} <span className="dates">{ex.start} – {ex.end}</span></div>
+                      <div className="exp-head">
+                        <strong>{ex.role}</strong> – {ex.company}
+                        {ex.location && ` (${ex.location})`}
+                        {ex.work_type && <span style={{marginLeft:6,fontSize:11,background:'#e5e7eb',padding:'2px 6px',borderRadius:4}}>{ex.work_type}</span>}
+                        <span className="dates">{ex.start} – {ex.end}</span>
+                      </div>
                       {ex.bullets?.length>0 && (
                         <ul>
                           {ex.bullets.map((b: string, j: number)=>(<li key={j}>{b}</li>))}
@@ -193,7 +198,12 @@ export default function Preview(){
                   if(!ex) return null;
                   return (
                     <div key={i} className="exp-item">
-                      <div className="exp-head"><strong>{ex.role}</strong> – {ex.company} <span className="dates">{ex.start} – {ex.end}</span></div>
+                      <div className="exp-head">
+                        <strong>{ex.role}</strong> – {ex.company}
+                        {ex.location && ` (${ex.location})`}
+                        {ex.work_type && <span style={{marginLeft:6,fontSize:11,background:'#e5e7eb',padding:'2px 6px',borderRadius:4}}>{ex.work_type}</span>}
+                        <span className="dates">{ex.start} – {ex.end}</span>
+                      </div>
                       {ex.bullets?.length>0 && (
                         <ul>
                           {ex.bullets.map((b: string, j: number)=>(<li key={j}>{b}</li>))}

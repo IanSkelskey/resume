@@ -56,6 +56,10 @@ export async function createExperience(exp: ExperienceEntity): Promise<Experienc
   const r = await fetch(`${base}/experiences`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(exp)});
   return r.json();
 }
+export async function updateExperience(id: number, exp: ExperienceEntity): Promise<ExperienceEntity> {
+  const r = await fetch(`${base}/experiences/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(exp)});
+  return r.json();
+}
 export async function deleteExperience(id: number): Promise<void> {
   await fetch(`${base}/experiences/${id}`, { method:'DELETE' });
 }

@@ -206,7 +206,7 @@ export default function Edit(){
                 </label>
               })}
             </div>
-            <form onSubmit={async (e)=>{ e.preventDefault(); const fd=new FormData(e.currentTarget); const exp: ExperienceEntity = { role:String(fd.get('role')||''), company:String(fd.get('company')||''), location:String(fd.get('location')||'')||undefined, start:String(fd.get('start')||''), end:String(fd.get('end')||''), bullets:String(fd.get('bullets')||'').split('\n').filter(Boolean)}; const created = await createExperience(exp); update('experiences', [...data.experiences, created]); setExperiences(await listExperiences()); (e.target as HTMLFormElement).reset(); }} style={{marginTop:16,padding:16,background:'#f8f9fa',borderRadius:8,border:'1px solid #e1e4e8'}}>
+            <form onSubmit={async (e)=>{ e.preventDefault(); const fd=new FormData(e.currentTarget); const exp: ExperienceEntity = { role:String(fd.get('role')||''), company:String(fd.get('company')||''), location:String(fd.get('location')||'')||undefined, work_type:(fd.get('work_type') as 'remote'|'on-site'|'hybrid')||undefined, start:String(fd.get('start')||''), end:String(fd.get('end')||''), bullets:String(fd.get('bullets')||'').split('\n').filter(Boolean)}; const created = await createExperience(exp); update('experiences', [...data.experiences, created]); setExperiences(await listExperiences()); (e.target as HTMLFormElement).reset(); }} style={{marginTop:16,padding:16,background:'#f8f9fa',borderRadius:8,border:'1px solid #e1e4e8'}}>
               <div style={{fontSize:14,fontWeight:500,marginBottom:12,color:'#1a1a1a'}}>Quick add to library:</div>
               <div style={{display:'grid',gap:10}}>
                 <div style={{display:'grid',gridTemplateColumns:'2fr 2fr 1fr',gap:8}}>
@@ -214,9 +214,15 @@ export default function Edit(){
                   <input name="company" placeholder="Company *" required style={{fontSize:13}}/>
                   <input name="location" placeholder="Location" style={{fontSize:13}}/>
                 </div>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 100px',gap:8}}>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 100px',gap:8}}>
                   <input name="start" placeholder="Start (e.g., Jan 2020)" required style={{fontSize:13}}/>
                   <input name="end" placeholder="End (e.g., Present)" required style={{fontSize:13}}/>
+                  <select name="work_type" style={{fontSize:13}}>
+                    <option value="">Work Type</option>
+                    <option value="remote">Remote</option>
+                    <option value="on-site">On-site</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
                   <button type="submit" style={{fontSize:13}}>Add</button>
                 </div>
               </div>
@@ -233,6 +239,15 @@ export default function Edit(){
               <label>Company<input value={obj.company} onChange={e=>{
                 const arr=[...data.experiences]; arr[i] = {...obj, company:e.target.value}; update('experiences', arr);
               }}/></label>
+              <div className="row">
+                <label>Location<input value={obj.location||''} onChange={e=>{const arr=[...data.experiences]; arr[i] = {...obj, location:e.target.value}; update('experiences', arr);}}/></label>
+                <label>Work Type<select value={obj.work_type||''} onChange={e=>{const arr=[...data.experiences]; arr[i] = {...obj, work_type:e.target.value as 'remote'|'on-site'|'hybrid'||undefined}; update('experiences', arr);}}>
+                  <option value="">--</option>
+                  <option value="remote">Remote</option>
+                  <option value="on-site">On-site</option>
+                  <option value="hybrid">Hybrid</option>
+                </select></label>
+              </div>
               <div className="row">
                 <label>Start<input value={obj.start} onChange={e=>{const arr=[...data.experiences]; arr[i] = {...obj, start:e.target.value}; update('experiences', arr);}}/></label>
                 <label>End<input value={obj.end} onChange={e=>{const arr=[...data.experiences]; arr[i] = {...obj, end:e.target.value}; update('experiences', arr);}}/></label>

@@ -39,10 +39,19 @@ db.prepare(`CREATE TABLE IF NOT EXISTS experiences (
   role TEXT NOT NULL,
   company TEXT NOT NULL,
   location TEXT,
+  work_type TEXT, -- 'remote', 'on-site', 'hybrid'
   start TEXT NOT NULL,
   end TEXT NOT NULL,
   bullets TEXT NOT NULL -- JSON array
 )`).run();
+
+// Ensure legacy DB upgraded to include work_type column
+try {
+  const expCols = db.prepare(`PRAGMA table_info(experiences)`).all();
+  if(!expCols.some(c=>c.name==='work_type')){
+    db.prepare(`ALTER TABLE experiences ADD COLUMN work_type TEXT`).run();
+  }
+} catch (e){ /* ignore */ }
 
 db.prepare(`CREATE TABLE IF NOT EXISTS education (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -122,10 +131,16 @@ function createSkill(name){
 }
 
 function createExperience(exp){
-  const info = db.prepare(`INSERT INTO experiences (role,company,location,start,end,bullets) VALUES (?,?,?,?,?,?)`).run(
-    exp.role, exp.company, exp.location || null, exp.start, exp.end, JSON.stringify(exp.bullets||[])
+  const info = db.prepare(`INSERT INTO experiences (role,company,location,work_type,start,end,bullets) VALUES (?,?,?,?,?,?,?)`).run(
+    exp.role, exp.company, exp.location || null, exp.work_type || null, exp.start, exp.end, JSON.stringify(exp.bullets||[])
   );
   return info.lastInsertRowid;
+}
+
+function updateExperience(id, exp){
+  db.prepare(`UPDATE experiences SET role=?, company=?, location=?, work_type=?, start=?, end=?, bullets=? WHERE id=?`).run(
+    exp.role, exp.company, exp.location || null, exp.work_type || null, exp.start, exp.end, JSON.stringify(exp.bullets||[]), id
+  );
 }
 
 function createEducation(ed){
@@ -165,7 +180,7 @@ function getResumeAggregate(id){
   if(!base) return null;
   const skills = db.prepare(`SELECT rs.skill_id as id FROM resume_skills rs WHERE rs.resume_id = ? ORDER BY rs.ord`).all(id).map(r=>r.id);
   const experiences = db.prepare(`SELECT e.* FROM resume_experiences re JOIN experiences e ON e.id = re.experience_id WHERE re.resume_id = ? ORDER BY re.ord`).all(id).map(r=>({
-    id: r.id, role: r.role, company: r.company, location: r.location || undefined, start: r.start, end: r.end, bullets: JSON.parse(r.bullets||'[]')
+    id: r.id, role: r.role, company: r.company, location: r.location || undefined, work_type: r.work_type || undefined, start: r.start, end: r.end, bullets: JSON.parse(r.bullets||'[]')
   }));
   const education = db.prepare(`SELECT ed.* FROM resume_education re JOIN education ed ON ed.id = re.education_id WHERE re.resume_id = ? ORDER BY re.ord`).all(id).map(r=>({
     id: r.id, institution: r.institution, degree: r.degree, end: r.end
@@ -267,9 +282,10 @@ function createSkillEntity(payload){ return { id: createSkill(payload.name), nam
 function deleteSkill(id){ db.prepare('DELETE FROM skills WHERE id = ?').run(id); }
 function listExperiences(){
   const rows = db.prepare('SELECT * FROM experiences ORDER BY id DESC').all();
-  return rows.map(r=>({ id:r.id, role:r.role, company:r.company, location:r.location||undefined, start:r.start, end:r.end, bullets: JSON.parse(r.bullets||'[]') }));
+  return rows.map(r=>({ id:r.id, role:r.role, company:r.company, location:r.location||undefined, work_type:r.work_type||undefined, start:r.start, end:r.end, bullets: JSON.parse(r.bullets||'[]') }));
 }
 function createExperienceEntity(payload){ return { id: createExperience(payload), ...payload }; }
+function updateExperienceEntity(id, payload){ updateExperience(id, payload); return { id, ...payload }; }
 function deleteExperience(id){ db.prepare('DELETE FROM experiences WHERE id = ?').run(id); }
 function listEducation(){ return db.prepare('SELECT * FROM education ORDER BY id DESC').all(); }
 function createEducationEntity(payload){ return { id: createEducation(payload), ...payload }; }
@@ -388,7 +404,7 @@ module.exports = {
   update: updateResume,
   // libraries
   listSkills, createSkillEntity, deleteSkill,
-  listExperiences, createExperienceEntity, deleteExperience,
+  listExperiences, createExperienceEntity, updateExperienceEntity, deleteExperience,
   listEducation, createEducationEntity, deleteEducation,
   listProjects, createProjectEntity, deleteProject,
   listSocials, createSocialEntity, deleteSocial,
