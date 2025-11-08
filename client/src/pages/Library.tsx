@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { createContact, createEducation, createExperience, createProject, createSkill, createSocial, listContacts, listEducation, listExperiences, listProjects, listSkills, listSocials } from '../api';
-import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, Skill } from '../types';
+import React, { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
+import { listSkills, createSkill, listExperiences, createExperience, listEducation, createEducation, listProjects, createProject, listSocials, createSocial, listContacts, createContact, updateContact, deleteSkill, deleteExperience, deleteEducation, deleteProject, deleteSocial, deleteContact } from '../api';
+import type { Skill, ExperienceEntity, EducationEntity, ProjectEntity, SocialLink, ContactInfo } from '../types';
+import Modal, { ConfirmModal } from '../components/Modal';
 
 export default function Library(){
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -10,6 +11,10 @@ export default function Library(){
   const [projects, setProjects] = useState<ProjectEntity[]>([]);
   const [socials, setSocials] = useState<{id: number; label: string; url: string}[]>([]);
   const [contacts, setContacts] = useState<Array<ContactInfo & {id: number}>>([]);
+  const [activeTab, setActiveTab] = useState<'skills'|'experiences'|'education'|'projects'|'contacts'|'socials'>('skills');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingContact, setEditingContact] = useState<(ContactInfo & {id: number}) | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{show: boolean; message: string; onConfirm: () => void | Promise<void>}>({show: false, message: '', onConfirm: () => {}});
 
   useEffect(()=>{ refresh(); },[]);
   async function refresh(){
@@ -19,44 +24,123 @@ export default function Library(){
 
   async function addSkill(e: React.FormEvent<HTMLFormElement>){
     e.preventDefault();
-    const fd = new FormData(e.currentTarget); const name = String(fd.get('name')||'').trim(); if(!name) return;
-    await createSkill(name); e.currentTarget.reset(); refresh();
+    try {
+      const fd = new FormData(e.currentTarget); const name = String(fd.get('name')||'').trim(); if(!name) return;
+      await createSkill(name);
+      const form = e.currentTarget;
+      if (form) form.reset();
+      refresh();
+      setShowAddModal(false);
+      toast.success('Skill added successfully');
+    } catch (error) {
+      toast.error('Failed to add skill');
+    }
   }
   async function addExperience(e: React.FormEvent<HTMLFormElement>){
-    e.preventDefault(); const fd = new FormData(e.currentTarget);
-    const exp: ExperienceEntity = {
-      role: String(fd.get('role')||''), company: String(fd.get('company')||''), location: String(fd.get('location')||'') || undefined,
-      start: String(fd.get('start')||''), end: String(fd.get('end')||''), bullets: String(fd.get('bullets')||'').split('\n').filter(Boolean)
-    };
-    await createExperience(exp); e.currentTarget.reset(); refresh();
+    e.preventDefault();
+    try {
+      const fd = new FormData(e.currentTarget);
+      const exp: ExperienceEntity = {
+        role: String(fd.get('role')||''), company: String(fd.get('company')||''), location: String(fd.get('location')||'') || undefined,
+        start: String(fd.get('start')||''), end: String(fd.get('end')||''), bullets: String(fd.get('bullets')||'').split('\n').filter(Boolean)
+      };
+      await createExperience(exp);
+      const form = e.currentTarget;
+      if (form) form.reset();
+      refresh();
+      setShowAddModal(false);
+      toast.success('Experience added successfully');
+    } catch (error) {
+      toast.error('Failed to add experience');
+    }
   }
   async function addEducation(e: React.FormEvent<HTMLFormElement>){
-    e.preventDefault(); const fd = new FormData(e.currentTarget);
-    const ed = { institution: String(fd.get('institution')||''), degree: String(fd.get('degree')||''), end: String(fd.get('end')||'') };
-    await createEducation(ed); e.currentTarget.reset(); refresh();
+    e.preventDefault();
+    try {
+      const fd = new FormData(e.currentTarget);
+      const ed = { institution: String(fd.get('institution')||''), degree: String(fd.get('degree')||''), end: String(fd.get('end')||'') };
+      await createEducation(ed);
+      const form = e.currentTarget;
+      if (form) form.reset();
+      refresh();
+      setShowAddModal(false);
+      toast.success('Education added successfully');
+    } catch (error) {
+      toast.error('Failed to add education');
+    }
   }
   async function addProject(e: React.FormEvent<HTMLFormElement>){
-    e.preventDefault(); const fd = new FormData(e.currentTarget);
-    const p: ProjectEntity = { name: String(fd.get('name')||''), description: String(fd.get('description')||''), link: String(fd.get('link')||''), bullets: String(fd.get('bullets')||'').split('\n').filter(Boolean) };
-    await createProject(p); e.currentTarget.reset(); refresh();
+    e.preventDefault();
+    try {
+      const fd = new FormData(e.currentTarget);
+      const p: ProjectEntity = { name: String(fd.get('name')||''), description: String(fd.get('description')||''), link: String(fd.get('link')||''), bullets: String(fd.get('bullets')||'').split('\n').filter(Boolean) };
+      await createProject(p);
+      const form = e.currentTarget;
+      if (form) form.reset();
+      refresh();
+      setShowAddModal(false);
+      toast.success('Project added successfully');
+    } catch (error) {
+      toast.error('Failed to add project');
+    }
   }
   async function addSocial(e: React.FormEvent<HTMLFormElement>){
-    e.preventDefault(); const fd = new FormData(e.currentTarget);
-    const social = { label: String(fd.get('label')||''), url: String(fd.get('url')||'') };
-    if(!social.label || !social.url) return;
-    await createSocial(social); e.currentTarget.reset(); refresh();
+    e.preventDefault();
+    try {
+      const fd = new FormData(e.currentTarget);
+      const social = { label: String(fd.get('label')||''), url: String(fd.get('url')||'') };
+      if(!social.label || !social.url) return;
+      await createSocial(social);
+      const form = e.currentTarget;
+      if (form) form.reset();
+      refresh();
+      setShowAddModal(false);
+      toast.success('Social link added successfully');
+    } catch (error) {
+      toast.error('Failed to add social link');
+    }
   }
   async function addContact(e: React.FormEvent<HTMLFormElement>){
-    e.preventDefault(); const fd = new FormData(e.currentTarget);
-    const contact: ContactInfo = {
-      email: String(fd.get('email')||'') || undefined,
-      phone: String(fd.get('phone')||'') || undefined,
-      website: String(fd.get('website')||'') || undefined,
-      linkedin: String(fd.get('linkedin')||'') || undefined,
-      github: String(fd.get('github')||'') || undefined,
-      location: String(fd.get('location')||'') || undefined
-    };
-    await createContact(contact); e.currentTarget.reset(); refresh();
+    e.preventDefault();
+    try {
+      const fd = new FormData(e.currentTarget);
+      const contact: ContactInfo = {
+        type: String(fd.get('type')) as ContactInfo['type'],
+        value: String(fd.get('value')||'').trim(),
+        label: String(fd.get('label')||'').trim() || undefined
+      };
+      if (!contact.value) return;
+      
+      if (editingContact) {
+        await updateContact(editingContact.id, contact);
+        toast.success('Contact updated successfully');
+        setEditingContact(null);
+      } else {
+        await createContact(contact);
+        toast.success('Contact added successfully');
+      }
+      const form = e.currentTarget;
+      if (form) form.reset();
+      refresh();
+      setShowAddModal(false);
+    } catch (error) {
+      toast.error(editingContact ? 'Failed to update contact' : 'Failed to add contact');
+    }
+  }
+
+  function handleDelete(message: string, onConfirm: () => Promise<void>) {
+    setConfirmDelete({
+      show: true,
+      message,
+      onConfirm: async () => {
+        try {
+          await onConfirm();
+          toast.success('Item deleted successfully');
+        } catch (error) {
+          toast.error('Failed to delete item');
+        }
+      }
+    });
   }
 
   return (
@@ -65,105 +149,233 @@ export default function Library(){
         <h1 className="content-title">Library</h1>
         <p className="content-subtitle">Manage your reusable resume components</p>
       </div>
+      
+      <div className="tabs">
+        <button className={`tab ${activeTab === 'skills' ? 'active' : ''}`} onClick={() => setActiveTab('skills')}>Skills</button>
+        <button className={`tab ${activeTab === 'experiences' ? 'active' : ''}`} onClick={() => setActiveTab('experiences')}>Experiences</button>
+        <button className={`tab ${activeTab === 'education' ? 'active' : ''}`} onClick={() => setActiveTab('education')}>Education</button>
+        <button className={`tab ${activeTab === 'projects' ? 'active' : ''}`} onClick={() => setActiveTab('projects')}>Projects</button>
+        <button className={`tab ${activeTab === 'contacts' ? 'active' : ''}`} onClick={() => setActiveTab('contacts')}>Contact Info</button>
+        <button className={`tab ${activeTab === 'socials' ? 'active' : ''}`} onClick={() => setActiveTab('socials')}>Social Links</button>
+      </div>
+
       <div className="editor" style={{maxWidth:1100}}>
+        {activeTab === 'skills' && (
         <section>
-          <h3>Skills</h3>
-          <form onSubmit={addSkill} className="row">
-            <input name="name" placeholder="New skill" />
-            <button type="submit">Add</button>
-          </form>
-          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:8}}>
-            {skills.map(s=> <span key={s.id} className="skills-pill">{s.name}</span>)}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <h3 style={{margin:0}}>Skills</h3>
+            <button onClick={() => setShowAddModal(true)}>+ Add Skill</button>
+          </div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            {skills.map(s=> (
+              <span key={s.id} className="skills-pill" style={{display:'flex',alignItems:'center',gap:6}}>
+                {s.name}
+                <button onClick={()=> handleDelete(`Delete skill "${s.name}"?`, async () => { await deleteSkill(s.id!); refresh(); })} style={{background:'none',border:'none',color:'#999',cursor:'pointer',padding:0,fontSize:14}} type="button">×</button>
+              </span>
+            ))}
           </div>
         </section>
+        )}
 
+        {activeTab === 'experiences' && (
         <section>
-          <h3>Experiences</h3>
-          <form onSubmit={addExperience} className="card">
-            <label>Role<input name="role"/></label>
-            <label>Company<input name="company"/></label>
-            <div className="row"><label>Location<input name="location"/></label><label>Start<input name="start"/></label><label>End<input name="end"/></label></div>
-            <label>Bullets<textarea name="bullets" rows={4} placeholder="One per line"/></label>
-            <button type="submit">Add Experience</button>
-          </form>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <h3 style={{margin:0}}>Experiences</h3>
+            <button onClick={() => setShowAddModal(true)}>+ Add Experience</button>
+          </div>
           <ul>
             {experiences.map(e=> (
-              <li key={e.id}><strong>{e.role}</strong> – {e.company} ({e.start}–{e.end})</li>
-            ))}
-          </ul>
-        </section>
-
-        <section>
-          <h3>Education</h3>
-          <form onSubmit={addEducation} className="row">
-            <input name="institution" placeholder="Institution"/>
-            <input name="degree" placeholder="Degree"/>
-            <input name="end" placeholder="End"/>
-            <button type="submit">Add</button>
-          </form>
-          <ul>
-            {education.map(e=> (<li key={e.id}><strong>{e.degree}</strong>, {e.institution} ({e.end})</li>))}
-          </ul>
-        </section>
-
-        <section>
-          <h3>Projects</h3>
-          <form onSubmit={addProject} className="card">
-            <label>Name<input name="name"/></label>
-            <label>Description<textarea name="description" rows={3}/></label>
-            <div className="row"><label>Link<input name="link" placeholder="https://..."/></label></div>
-            <label>Bullets<textarea name="bullets" rows={4} placeholder="One per line"/></label>
-            <button type="submit">Add Project</button>
-          </form>
-          <ul>
-            {projects.map(p=> (<li key={p.id}><strong>{p.name}</strong> {p.link ? `( ${p.link} )` : ''}</li>))}
-          </ul>
-        </section>
-
-        <section>
-          <h3>Contact Info</h3>
-          <form onSubmit={addContact} className="card">
-            <div className="row">
-              <label>Email<input name="email" type="email"/></label>
-              <label>Phone<input name="phone"/></label>
-            </div>
-            <div className="row">
-              <label>LinkedIn<input name="linkedin" placeholder="username or full URL"/></label>
-              <label>GitHub<input name="github" placeholder="username or full URL"/></label>
-            </div>
-            <div className="row">
-              <label>Website<input name="website"/></label>
-              <label>Location<input name="location"/></label>
-            </div>
-            <button type="submit">Add Contact Info</button>
-          </form>
-          <ul>
-            {contacts.map(c=> (
-              <li key={c.id}>
-                {c.email && <span>📧 {c.email} </span>}
-                {c.phone && <span>📞 {c.phone} </span>}
-                {c.location && <span>📍 {c.location} </span>}
-                {c.github && <span>GitHub: {c.github} </span>}
-                {c.linkedin && <span>LinkedIn: {c.linkedin} </span>}
+              <li key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span><strong>{e.role}</strong> – {e.company} ({e.start}–{e.end})</span>
+                <button className="danger" onClick={() => handleDelete(`Delete experience "${e.role}"?`, async () => { await deleteExperience(e.id!); refresh(); })} style={{fontSize:12,padding:'4px 8px'}}>Delete</button>
               </li>
             ))}
           </ul>
         </section>
+        )}
 
+        {activeTab === 'education' && (
         <section>
-          <h3>Social Links</h3>
-          <form onSubmit={addSocial} className="card">
-            <div className="row">
-              <label>Label<input name="label" placeholder="e.g., LinkedIn"/></label>
-              <label>URL<input name="url" placeholder="https://..."/></label>
-            </div>
-            <button type="submit">Add Social Link</button>
-          </form>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <h3 style={{margin:0}}>Education</h3>
+            <button onClick={() => setShowAddModal(true)}>+ Add Education</button>
+          </div>
           <ul>
-            {socials.map(s=> (<li key={s.id}><strong>{s.label}</strong>: {s.url}</li>))}
+            {education.map(e=> (
+              <li key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span><strong>{e.degree}</strong>, {e.institution} ({e.end})</span>
+                <button className="danger" onClick={() => handleDelete(`Delete education "${e.degree}"?`, async () => { await deleteEducation(e.id!); refresh(); })} style={{fontSize:12,padding:'4px 8px'}}>Delete</button>
+              </li>
+            ))}
           </ul>
         </section>
+        )}
+
+        {activeTab === 'projects' && (
+        <section>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <h3 style={{margin:0}}>Projects</h3>
+            <button onClick={() => setShowAddModal(true)}>+ Add Project</button>
+          </div>
+          <ul>
+            {projects.map(p=> (
+              <li key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span><strong>{p.name}</strong> {p.link ? `( ${p.link} )` : ''}</span>
+                <button className="danger" onClick={() => handleDelete(`Delete project "${p.name}"?`, async () => { await deleteProject(p.id!); refresh(); })} style={{fontSize:12,padding:'4px 8px'}}>Delete</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+        )}
+
+        {activeTab === 'contacts' && (
+        <section>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <h3 style={{margin:0}}>Contact Info</h3>
+            <button onClick={() => { setEditingContact(null); setShowAddModal(true); }}>+ Add Contact Info</button>
+          </div>
+          <ul>
+            {contacts.map(c=> {
+              const icons: Record<string, string> = {
+                email: '📧',
+                phone: '📞',
+                location: '📍',
+                linkedin: '💼',
+                github: '🐙',
+                website: '🌐'
+              };
+              return (
+                <li key={c.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+                  <span>
+                    {icons[c.type]} <strong>{c.type}:</strong> {c.value}
+                    {c.label && <em style={{color:'#666',marginLeft:8}}>({c.label})</em>}
+                  </span>
+                  <div style={{display:'flex',gap:4}}>
+                    <button onClick={() => { setEditingContact(c); setShowAddModal(true); }} style={{fontSize:12,padding:'4px 8px'}}>Edit</button>
+                    <button className="danger" onClick={() => handleDelete(`Delete ${c.type} "${c.value}"?`, async () => { await deleteContact(c.id); refresh(); })} style={{fontSize:12,padding:'4px 8px'}}>Delete</button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+        )}
+
+        {activeTab === 'socials' && (
+        <section>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+            <h3 style={{margin:0}}>Social Links</h3>
+            <button onClick={() => setShowAddModal(true)}>+ Add Social Link</button>
+          </div>
+          <ul>
+            {socials.map(s=> (
+              <li key={s.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span><strong>{s.label}</strong>: {s.url}</span>
+                <button className="danger" onClick={() => handleDelete(`Delete social link "${s.label}"?`, async () => { await deleteSocial(s.id); refresh(); })} style={{fontSize:12,padding:'4px 8px'}}>Delete</button>
+              </li>
+            ))}
+          </ul>
+        </section>
+        )}
       </div>
+
+      {/* Modals for adding items */}
+      {showAddModal && activeTab === 'skills' && (
+        <Modal isOpen={true} onClose={() => setShowAddModal(false)} title="Add New Skill" size="small">
+          <form onSubmit={addSkill}>
+            <label>
+              Skill Name
+              <input name="name" placeholder="e.g., TypeScript" required />
+            </label>
+            <button type="submit" style={{marginTop:16}}>Add Skill</button>
+          </form>
+        </Modal>
+      )}
+
+      {showAddModal && activeTab === 'experiences' && (
+        <Modal isOpen={true} onClose={() => setShowAddModal(false)} title="Add New Experience" size="large">
+          <form onSubmit={addExperience}>
+            <label>Role<input name="role" required /></label>
+            <label>Company<input name="company" required /></label>
+            <div style={{display:'flex',gap:8}}>
+              <label>Location<input name="location"/></label>
+              <label>Start<input name="start" placeholder="e.g., Jan 2020" required /></label>
+              <label>End<input name="end" placeholder="e.g., Dec 2022" required /></label>
+            </div>
+            <label>Bullets<textarea name="bullets" rows={4} placeholder="One per line"/></label>
+            <button type="submit" style={{marginTop:16}}>Add Experience</button>
+          </form>
+        </Modal>
+      )}
+
+      {showAddModal && activeTab === 'education' && (
+        <Modal isOpen={true} onClose={() => setShowAddModal(false)} title="Add New Education" size="medium">
+          <form onSubmit={addEducation}>
+            <label>Institution<input name="institution" placeholder="e.g., Stanford University" required /></label>
+            <label>Degree<input name="degree" placeholder="e.g., B.S. Computer Science" required /></label>
+            <label>End<input name="end" placeholder="e.g., 2020" required /></label>
+            <button type="submit" style={{marginTop:16}}>Add Education</button>
+          </form>
+        </Modal>
+      )}
+
+      {showAddModal && activeTab === 'projects' && (
+        <Modal isOpen={true} onClose={() => setShowAddModal(false)} title="Add New Project" size="large">
+          <form onSubmit={addProject}>
+            <label>Name<input name="name" required /></label>
+            <label>Description<textarea name="description" rows={3}/></label>
+            <label>Link<input name="link" placeholder="https://..."/></label>
+            <label>Bullets<textarea name="bullets" rows={4} placeholder="One per line"/></label>
+            <button type="submit" style={{marginTop:16}}>Add Project</button>
+          </form>
+        </Modal>
+      )}
+
+      {showAddModal && activeTab === 'contacts' && (
+        <Modal isOpen={true} onClose={() => { setShowAddModal(false); setEditingContact(null); }} title={editingContact ? "Edit Contact Info" : "Add Contact Info"} size="medium">
+          <form onSubmit={addContact}>
+            <label>
+              Type
+              <select name="type" defaultValue={editingContact?.type || 'email'} required>
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="github">GitHub</option>
+                <option value="website">Website</option>
+                <option value="location">Location</option>
+              </select>
+            </label>
+            <label>
+              Value
+              <input name="value" defaultValue={editingContact?.value || ''} placeholder="e.g., john@example.com" required />
+            </label>
+            <label>
+              Label (optional)
+              <input name="label" defaultValue={editingContact?.label || ''} placeholder="e.g., Personal, Work" />
+            </label>
+            <button type="submit" style={{marginTop:16}}>{editingContact ? 'Update' : 'Add'} Contact Info</button>
+          </form>
+        </Modal>
+      )}
+
+      {showAddModal && activeTab === 'socials' && (
+        <Modal isOpen={true} onClose={() => setShowAddModal(false)} title="Add Social Link" size="medium">
+          <form onSubmit={addSocial}>
+            <label>Label<input name="label" placeholder="e.g., LinkedIn" required /></label>
+            <label>URL<input name="url" placeholder="https://..." required /></label>
+            <button type="submit" style={{marginTop:16}}>Add Social Link</button>
+          </form>
+        </Modal>
+      )}
+
+      {/* Confirmation modal for deletions */}
+      <ConfirmModal
+        isOpen={confirmDelete.show}
+        onClose={() => setConfirmDelete({show: false, message: '', onConfirm: () => {}})}
+        onConfirm={confirmDelete.onConfirm}
+        title="Confirm Deletion"
+        message={confirmDelete.message}
+      />
     </div>
   );
 }

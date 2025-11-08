@@ -5,12 +5,12 @@ const {
   get: getResume,
   create: createResume,
   update: updateResume,
-  listSkills, createSkillEntity,
-  listExperiences, createExperienceEntity,
-  listEducation, createEducationEntity,
-  listProjects, createProjectEntity,
-  listSocials, createSocialEntity,
-  listContacts, createContactEntity,
+  listSkills, createSkillEntity, deleteSkill,
+  listExperiences, createExperienceEntity, deleteExperience,
+  listEducation, createEducationEntity, deleteEducation,
+  listProjects, createProjectEntity, deleteProject,
+  listSocials, createSocialEntity, deleteSocial,
+  listContacts, createContactEntity, updateContact, deleteContact,
   seedIfEmpty
 } = require('./db');
 const app = express();
@@ -72,15 +72,22 @@ app.get('/api/resumes/:id/pdf', async (req,res)=> {
 // Library entity endpoints
 app.get('/api/skills', (_,res)=> res.json(listSkills()));
 app.post('/api/skills', (req,res)=> res.json(createSkillEntity(req.body)));
+app.delete('/api/skills/:id', (req,res)=> { deleteSkill(Number(req.params.id)); res.json({success:true}); });
 app.get('/api/experiences', (_,res)=> res.json(listExperiences()));
 app.post('/api/experiences', (req,res)=> res.json(createExperienceEntity(req.body)));
+app.delete('/api/experiences/:id', (req,res)=> { deleteExperience(Number(req.params.id)); res.json({success:true}); });
 app.get('/api/education', (_,res)=> res.json(listEducation()));
 app.post('/api/education', (req,res)=> res.json(createEducationEntity(req.body)));
+app.delete('/api/education/:id', (req,res)=> { deleteEducation(Number(req.params.id)); res.json({success:true}); });
 app.get('/api/projects', (_,res)=> res.json(listProjects()));
 app.post('/api/projects', (req,res)=> res.json(createProjectEntity(req.body)));
+app.delete('/api/projects/:id', (req,res)=> { deleteProject(Number(req.params.id)); res.json({success:true}); });
 app.get('/api/socials', (_,res)=> res.json(listSocials()));
 app.post('/api/socials', (req,res)=> res.json(createSocialEntity(req.body)));
+app.delete('/api/socials/:id', (req,res)=> { deleteSocial(Number(req.params.id)); res.json({success:true}); });
 app.get('/api/contacts', (_,res)=> res.json(listContacts()));
 app.post('/api/contacts', (req,res)=> res.json(createContactEntity(req.body)));
+app.put('/api/contacts/:id', (req,res)=> { updateContact(Number(req.params.id), req.body); res.json({success:true}); });
+app.delete('/api/contacts/:id', (req,res)=> { deleteContact(Number(req.params.id)); res.json({success:true}); });
 
 app.listen(PORT, ()=> console.log(`Server running on ${PORT}`));

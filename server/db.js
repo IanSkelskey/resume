@@ -67,12 +67,9 @@ db.prepare(`CREATE TABLE IF NOT EXISTS socials (
 
 db.prepare(`CREATE TABLE IF NOT EXISTS contacts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  email TEXT,
-  phone TEXT,
-  website TEXT,
-  linkedin TEXT,
-  github TEXT,
-  location TEXT
+  type TEXT NOT NULL, -- 'email', 'phone', 'website', 'linkedin', 'github', 'location'
+  value TEXT NOT NULL,
+  label TEXT -- optional label like 'Personal Email', 'Work Phone', etc.
 )`).run();
 
 // Mapping tables (ordered composition)
@@ -153,8 +150,8 @@ function createSocial(s){
 }
 
 function createContact(c){
-  const info = db.prepare(`INSERT INTO contacts (email,phone,website,linkedin,github,location) VALUES (?,?,?,?,?,?)`).run(
-    c.email || null, c.phone || null, c.website || null, c.linkedin || null, c.github || null, c.location || null
+  const info = db.prepare(`INSERT INTO contacts (type, value, label) VALUES (?, ?, ?)`).run(
+    c.type, c.value, c.label || null
   );
   return info.lastInsertRowid;
 }
@@ -267,25 +264,36 @@ function updateResume(id, payload){
 // Library CRUD
 function listSkills(){ return db.prepare('SELECT * FROM skills ORDER BY name').all(); }
 function createSkillEntity(payload){ return { id: createSkill(payload.name), name: payload.name }; }
+function deleteSkill(id){ db.prepare('DELETE FROM skills WHERE id = ?').run(id); }
 function listExperiences(){
   const rows = db.prepare('SELECT * FROM experiences ORDER BY id DESC').all();
   return rows.map(r=>({ id:r.id, role:r.role, company:r.company, location:r.location||undefined, start:r.start, end:r.end, bullets: JSON.parse(r.bullets||'[]') }));
 }
 function createExperienceEntity(payload){ return { id: createExperience(payload), ...payload }; }
+function deleteExperience(id){ db.prepare('DELETE FROM experiences WHERE id = ?').run(id); }
 function listEducation(){ return db.prepare('SELECT * FROM education ORDER BY id DESC').all(); }
 function createEducationEntity(payload){ return { id: createEducation(payload), ...payload }; }
+function deleteEducation(id){ db.prepare('DELETE FROM education WHERE id = ?').run(id); }
 function listProjects(){
   const rows = db.prepare('SELECT * FROM projects ORDER BY id DESC').all();
   return rows.map(r=>({ id:r.id, name:r.name, description:r.description||'', link:r.link||'', bullets: JSON.parse(r.bullets||'[]') }));
 }
 function createProjectEntity(payload){ return { id: createProject(payload), ...payload }; }
+function deleteProject(id){ db.prepare('DELETE FROM projects WHERE id = ?').run(id); }
 function listSocials(){ return db.prepare('SELECT * FROM socials ORDER BY id DESC').all(); }
 function createSocialEntity(payload){ return { id: createSocial(payload), ...payload }; }
+function deleteSocial(id){ db.prepare('DELETE FROM socials WHERE id = ?').run(id); }
 function listContacts(){
-  const rows = db.prepare('SELECT * FROM contacts ORDER BY id DESC').all();
-  return rows.map(r=>({ id:r.id, email:r.email||undefined, phone:r.phone||undefined, website:r.website||undefined, linkedin:r.linkedin||undefined, github:r.github||undefined, location:r.location||undefined }));
+  const rows = db.prepare('SELECT * FROM contacts ORDER BY type, id').all();
+  return rows.map(r=>({ id:r.id, type:r.type, value:r.value, label:r.label||undefined }));
 }
 function createContactEntity(payload){ return { id: createContact(payload), ...payload }; }
+function updateContact(id, payload){
+  db.prepare('UPDATE contacts SET type = ?, value = ?, label = ? WHERE id = ?').run(
+    payload.type, payload.value, payload.label || null, id
+  );
+}
+function deleteContact(id){ db.prepare('DELETE FROM contacts WHERE id = ?').run(id); }
 
 function seedIfEmpty(){
   const count = db.prepare('SELECT COUNT(*) as c FROM resumes').get().c;
@@ -346,11 +354,11 @@ module.exports = {
   create: createResume,
   update: updateResume,
   // libraries
-  listSkills, createSkillEntity,
-  listExperiences, createExperienceEntity,
-  listEducation, createEducationEntity,
-  listProjects, createProjectEntity,
-  listSocials, createSocialEntity,
-  listContacts, createContactEntity,
+  listSkills, createSkillEntity, deleteSkill,
+  listExperiences, createExperienceEntity, deleteExperience,
+  listEducation, createEducationEntity, deleteEducation,
+  listProjects, createProjectEntity, deleteProject,
+  listSocials, createSocialEntity, deleteSocial,
+  listContacts, createContactEntity, updateContact, deleteContact,
   seedIfEmpty
 };

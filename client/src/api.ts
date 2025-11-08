@@ -44,6 +44,9 @@ export async function createSkill(name: string): Promise<Skill> {
   const r = await fetch(`${base}/skills`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name})});
   return r.json();
 }
+export async function deleteSkill(id: number): Promise<void> {
+  await fetch(`${base}/skills/${id}`, { method:'DELETE' });
+}
 
 export async function listExperiences(): Promise<ExperienceEntity[]> {
   const r = await fetch(`${base}/experiences`);
@@ -52,6 +55,9 @@ export async function listExperiences(): Promise<ExperienceEntity[]> {
 export async function createExperience(exp: ExperienceEntity): Promise<ExperienceEntity> {
   const r = await fetch(`${base}/experiences`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(exp)});
   return r.json();
+}
+export async function deleteExperience(id: number): Promise<void> {
+  await fetch(`${base}/experiences/${id}`, { method:'DELETE' });
 }
 
 export async function listEducation(): Promise<EducationEntity[]> {
@@ -62,6 +68,9 @@ export async function createEducation(e: EducationEntity): Promise<EducationEnti
   const r = await fetch(`${base}/education`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(e)});
   return r.json();
 }
+export async function deleteEducation(id: number): Promise<void> {
+  await fetch(`${base}/education/${id}`, { method:'DELETE' });
+}
 
 export async function listProjects(): Promise<ProjectEntity[]> {
   const r = await fetch(`${base}/projects`);
@@ -70,6 +79,9 @@ export async function listProjects(): Promise<ProjectEntity[]> {
 export async function createProject(p: ProjectEntity): Promise<ProjectEntity> {
   const r = await fetch(`${base}/projects`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(p)});
   return r.json();
+}
+export async function deleteProject(id: number): Promise<void> {
+  await fetch(`${base}/projects/${id}`, { method:'DELETE' });
 }
 
 export async function listSocials(): Promise<{id: number; label: string; url: string}[]> {
@@ -80,6 +92,9 @@ export async function createSocial(social: {label: string; url: string}): Promis
   const r = await fetch(`${base}/socials`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(social)});
   return r.json();
 }
+export async function deleteSocial(id: number): Promise<void> {
+  await fetch(`${base}/socials/${id}`, { method:'DELETE' });
+}
 
 export async function listContacts(): Promise<Array<ContactInfo & {id: number}>> {
   const r = await fetch(`${base}/contacts`);
@@ -88,4 +103,10 @@ export async function listContacts(): Promise<Array<ContactInfo & {id: number}>>
 export async function createContact(contact: ContactInfo): Promise<ContactInfo & {id: number}> {
   const r = await fetch(`${base}/contacts`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(contact)});
   return r.json();
+}
+export async function updateContact(id: number, contact: ContactInfo): Promise<void> {
+  await fetch(`${base}/contacts/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(contact)});
+}
+export async function deleteContact(id: number): Promise<void> {
+  await fetch(`${base}/contacts/${id}`, { method:'DELETE' });
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { exportPdf, getResume } from '../api';
-import { EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill } from '../types';
+import { exportPdf, getResume, listContacts } from '../api';
+import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill } from '../types';
 import { MdEmail, MdPhone, MdLocationOn } from 'react-icons/md';
 import { FaGithub, FaLinkedin, FaGlobe } from 'react-icons/fa';
 import DashboardLayout from '../components/DashboardLayout';
@@ -9,10 +9,57 @@ import DashboardLayout from '../components/DashboardLayout';
 export default function Preview(){
   const { id } = useParams();
   const [data,setData] = useState<ResumeData|null>(null);
+  const [contacts,setContacts] = useState<Array<ContactInfo & {id: number}>>([]);
   const [search] = useSearchParams();
   const pdfMode = useMemo(()=> search.get('pdf') === '1', [search]);
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(()=>{ if(id) getResume(Number(id)).then(setData); },[id]);
+  useEffect(()=>{ 
+    if(id) {
+      getResume(Number(id)).then(setData);
+      listContacts().then(setContacts);
+    }
+  },[id]);
+
+  const renderContact = (c: ContactInfo & {id: number}) => {
+    const getIcon = () => {
+      switch(c.type) {
+        case 'email': return <MdEmail className="contact-icon" />;
+        case 'phone': return <MdPhone className="contact-icon" />;
+        case 'location': return <MdLocationOn className="contact-icon" />;
+        case 'github': return <FaGithub className="contact-icon" />;
+        case 'linkedin': return <FaLinkedin className="contact-icon" />;
+        case 'website': return <FaGlobe className="contact-icon" />;
+      }
+    };
+
+    const getLink = () => {
+      switch(c.type) {
+        case 'email':
+          return <a href={`mailto:${c.value}`}>{c.value}</a>;
+        case 'github':
+          const githubUrl = c.value.startsWith('http') ? c.value : `https://github.com/${c.value.replace(/^(https?:\/\/(www\.)?github\.com\/|\/)/,'')}`;
+          const githubDisplay = c.value.replace(/^(https?:\/\/(www\.)?github\.com\/|\/)/,'');
+          return <a href={githubUrl} target="_blank" rel="noopener noreferrer">{githubDisplay}</a>;
+        case 'linkedin':
+          const linkedinUrl = c.value.startsWith('http') ? c.value : `https://www.linkedin.com/in/${c.value.replace(/^(https?:\/\/(www\.)?linkedin\.com\/in\/|\/)/,'')}`;
+          const linkedinDisplay = c.value.replace(/^(https?:\/\/(www\.)?linkedin\.com\/in\/|\/)/,'');
+          return <a href={linkedinUrl} target="_blank" rel="noopener noreferrer">{linkedinDisplay}</a>;
+        case 'website':
+          const websiteUrl = c.value.startsWith('http') ? c.value : `https://${c.value}`;
+          const websiteDisplay = c.value.replace(/^https?:\/\/(www\.)?/, '');
+          return <a href={websiteUrl} target="_blank" rel="noopener noreferrer">{websiteDisplay}</a>;
+        default:
+          return <span>{c.value}</span>;
+      }
+    };
+
+    return (
+      <li key={c.id}>
+        {getIcon()}
+        {getLink()}
+      </li>
+    );
+  };
 
   if(!data) return <div style={{padding:'2rem'}}>Loading...</div>
 
@@ -84,50 +131,7 @@ export default function Preview(){
             <aside>
               <section>
                 <h2>Contact</h2>
-                <ul className="contact-list">
-                  {data.contact?.email && (
-                    <li>
-                      <MdEmail className="contact-icon" />
-                      <a href={`mailto:${data.contact.email}`}>{data.contact.email}</a>
-                    </li>
-                  )}
-                  {data.contact?.phone && (
-                    <li>
-                      <MdPhone className="contact-icon" />
-                      <span>{data.contact.phone}</span>
-                    </li>
-                  )}
-                  {data.contact?.location && (
-                    <li>
-                      <MdLocationOn className="contact-icon" />
-                      <span>{data.contact.location}</span>
-                    </li>
-                  )}
-                  {data.contact?.github && (
-                    <li>
-                      <FaGithub className="contact-icon" />
-                      <a href={data.contact.github.startsWith('http') ? data.contact.github : `https://github.com/${data.contact.github.replace(/^(https?:\/\/(www\.)?github\.com\/|\/)/,'')}`} target="_blank" rel="noopener noreferrer">
-                        {data.contact.github.replace(/^(https?:\/\/(www\.)?github\.com\/|\/)/,'')}
-                      </a>
-                    </li>
-                  )}
-                  {data.contact?.linkedin && (
-                    <li>
-                      <FaLinkedin className="contact-icon" />
-                      <a href={data.contact.linkedin.startsWith('http') ? data.contact.linkedin : `https://www.linkedin.com/in/${data.contact.linkedin.replace(/^(https?:\/\/(www\.)?linkedin\.com\/in\/|\/)/,'')}`} target="_blank" rel="noopener noreferrer">
-                        {data.contact.linkedin.replace(/^(https?:\/\/(www\.)?linkedin\.com\/in\/|\/)/,'')}
-                      </a>
-                    </li>
-                  )}
-                  {data.contact?.website && (
-                    <li>
-                      <FaGlobe className="contact-icon" />
-                      <a href={data.contact.website.startsWith('http') ? data.contact.website : `https://${data.contact.website}`} target="_blank" rel="noopener noreferrer">
-                        {data.contact.website.replace(/^https?:\/\/(www\.)?/, '')}
-                      </a>
-                    </li>
-                  )}
-                </ul>
+                <ul className="contact-list">{contacts.map(renderContact)}</ul>
               </section>
               <section>
                 <h2>Skills</h2>
@@ -226,50 +230,7 @@ export default function Preview(){
             <aside>
               <section>
                 <h2>Contact</h2>
-                <ul className="contact-list">
-                  {data.contact?.email && (
-                    <li>
-                      <MdEmail className="contact-icon" />
-                      <a href={`mailto:${data.contact.email}`}>{data.contact.email}</a>
-                    </li>
-                  )}
-                  {data.contact?.phone && (
-                    <li>
-                      <MdPhone className="contact-icon" />
-                      <span>{data.contact.phone}</span>
-                    </li>
-                  )}
-                  {data.contact?.location && (
-                    <li>
-                      <MdLocationOn className="contact-icon" />
-                      <span>{data.contact.location}</span>
-                    </li>
-                  )}
-                  {data.contact?.github && (
-                    <li>
-                      <FaGithub className="contact-icon" />
-                      <a href={data.contact.github.startsWith('http') ? data.contact.github : `https://github.com/${data.contact.github.replace(/^(https?:\/\/(www\.)?github\.com\/|\/)/,'')}`} target="_blank" rel="noopener noreferrer">
-                        {data.contact.github.replace(/^(https?:\/\/(www\.)?github\.com\/|\/)/,'')}
-                      </a>
-                    </li>
-                  )}
-                  {data.contact?.linkedin && (
-                    <li>
-                      <FaLinkedin className="contact-icon" />
-                      <a href={data.contact.linkedin.startsWith('http') ? data.contact.linkedin : `https://www.linkedin.com/in/${data.contact.linkedin.replace(/^(https?:\/\/(www\.)?linkedin\.com\/in\/|\/)/,'')}`} target="_blank" rel="noopener noreferrer">
-                        {data.contact.linkedin.replace(/^(https?:\/\/(www\.)?linkedin\.com\/in\/|\/)/,'')}
-                      </a>
-                    </li>
-                  )}
-                  {data.contact?.website && (
-                    <li>
-                      <FaGlobe className="contact-icon" />
-                      <a href={data.contact.website.startsWith('http') ? data.contact.website : `https://${data.contact.website}`} target="_blank" rel="noopener noreferrer">
-                        {data.contact.website.replace(/^https?:\/\/(www\.)?/, '')}
-                      </a>
-                    </li>
-                  )}
-                </ul>
+                <ul className="contact-list">{contacts.map(renderContact)}</ul>
               </section>
               <section>
                 <h2>Skills</h2>
@@ -288,3 +249,4 @@ export default function Preview(){
     </DashboardLayout>
   );
 }
+

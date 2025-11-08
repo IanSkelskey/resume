@@ -15,12 +15,10 @@ export interface EducationEntity { id?: number; institution: string; degree: str
 export interface ProjectEntity { id?: number; name: string; description?: string; link?: string; bullets: string[]; }
 
 export interface ContactInfo {
-  email?: string;
-  phone?: string;
-  website?: string;
-  linkedin?: string;
-  github?: string;
-  location?: string;
+  id?: number;
+  type: 'email' | 'phone' | 'website' | 'linkedin' | 'github' | 'location';
+  value: string;
+  label?: string;
 }
 
 export interface SocialLink { label: string; url: string; }
