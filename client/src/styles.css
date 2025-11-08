@@ -1,0 +1,37 @@
+:root{--paper-w:8.5in;--paper-h:11in;--accent:#8a3140;--text:#222;--muted:#666}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--text);background:#f6f7f9}
+
+.page{min-height:100vh;display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:#fff;border-bottom:1px solid #e6e6e6;position:sticky;top:0;z-index:5}
+.topbar .actions{display:flex;gap:10px}
+button{background:#111;color:#fff;border:0;border-radius:6px;padding:8px 12px;cursor:pointer}
+button.danger{background:#9b1c1c}
+label{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+input,textarea{padding:8px;border:1px solid #d0d0d0;border-radius:6px;background:#fff}
+.editor{display:grid;grid-template-columns:1fr;gap:16px;padding:16px;max-width:900px;margin:0 auto;width:100%}
+.section-head{display:flex;align-items:center;justify-content:space-between}
+.card{border:1px solid #e5e5e5;background:#fff;padding:12px;border-radius:8px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.preview-wrapper{padding:18px;display:flex;justify-content:center;overflow:auto}
+.resume-sheet{width:var(--paper-w);height:var(--paper-h);background:#fff;box-shadow:0 10px 25px rgba(0,0,0,.08);position:relative;color:#111}
+.header-band{background:var(--accent);color:#fff;padding:22px 28px 18px}
+.name{font-family:Merriweather,serif;margin:0;font-size:34px;font-weight:900}
+.title{opacity:.9;margin-top:4px}
+.columns{display:grid;grid-template-columns:2.2fr 1fr;gap:22px;padding:20px 28px}
+section h2{font-family:Merriweather,serif;font-size:16px;margin:0 0 6px 0}
+.summary-text{line-height:1.35}
+.exp-item{margin-bottom:8px}
+.exp-head{font-size:14px;margin-bottom:4px}
+.exp-item ul{margin:0 0 8px 18px}
+.dates{float:right;color:var(--muted)}
+.skills{display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:0}
+.skills li{list-style:none;background:#f0f0f0;border-radius:12px;padding:4px 10px;font-size:12px}
+
+/* Make the canvas exactly one US Letter page */
+@media print{
+  body{background:#fff}
+  .preview-wrapper{padding:0}
+  .resume-sheet{box-shadow:none;margin:0}
+}
