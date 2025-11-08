@@ -16,7 +16,7 @@ export default function App() {
       <ul style={{marginTop:'1rem'}}>
         {resumes.map(r => (
           <li key={r.id} style={{marginBottom:'0.5rem'}}>
-            <strong>{r.name || 'Untitled'}</strong> – <Link to={`/edit/${r.id}`}>Edit</Link> | <Link to={`/preview/${r.id}`}>Preview</Link>
+            <strong>{r.label || '(No Label)'} </strong><span style={{color:'#666'}}>[{r.name}]</span> – <Link to={`/edit/${r.id}`}>Edit</Link> | <Link to={`/preview/${r.id}`}>Preview</Link>
           </li>
         ))}
       </ul>

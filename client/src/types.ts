@@ -14,24 +14,41 @@ export interface EducationEntity { id?: number; institution: string; degree: str
 
 export interface ProjectEntity { id?: number; name: string; description?: string; link?: string; bullets: string[]; }
 
+export interface ContactInfo {
+  email?: string;
+  phone?: string;
+  website?: string;
+  linkedin?: string;
+  github?: string;
+  location?: string;
+}
+
+export interface SocialLink { label: string; url: string; }
+
 export interface ResumeData {
   id?: number;
   name: string;
+  label?: string; // arbitrary resume name for a specific application
   title: string;
   summary: string;
   experiences: (ExperienceEntity | number)[]; // can send id or full object
   skills: (Skill | string | number)[]; // allow name string for quick add
   education: (EducationEntity | number)[];
   projects: (ProjectEntity | number)[];
+  contact?: ContactInfo;
+  socials?: SocialLink[];
   updated_at?: string;
 }
 
 export const emptyResume: ResumeData = {
   name: '',
+  label: '',
   title: 'Software Engineer',
   summary: '',
   experiences: [],
   skills: [],
   education: [],
-  projects: []
+  projects: [],
+  contact: {},
+  socials: []
 };

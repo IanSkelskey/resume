@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { createEducation, createExperience, createProject, createSkill, getResume, listEducation, listExperiences, listProjects, listSkills, saveResume } from '../api';
-import { EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill, emptyResume } from '../types';
+import { createContact, createEducation, createExperience, createProject, createSkill, createSocial, getResume, listContacts, listEducation, listExperiences, listProjects, listSkills, listSocials, saveResume } from '../api';
+import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill, SocialLink, emptyResume } from '../types';
 
 export default function Edit(){
   const { id } = useParams();
@@ -11,12 +11,14 @@ export default function Edit(){
   const [experiences, setExperiences] = useState<ExperienceEntity[]>([]);
   const [education, setEducation] = useState<EducationEntity[]>([]);
   const [projects, setProjects] = useState<ProjectEntity[]>([]);
+  const [contacts, setContacts] = useState<Array<ContactInfo & {id: number}>>([]);
+  const [socials, setSocials] = useState<Array<{id: number; label: string; url: string}>>([]);
   const isNew = useMemo(() => !id, [id]);
 
   useEffect(() => {
     // Load library data
-    Promise.all([listSkills(), listExperiences(), listEducation(), listProjects()]).then(([sk, ex, ed, pr])=>{
-      setSkills(sk); setExperiences(ex); setEducation(ed); setProjects(pr);
+    Promise.all([listSkills(), listExperiences(), listEducation(), listProjects(), listContacts(), listSocials()]).then(([sk, ex, ed, pr, ct, so])=>{
+      setSkills(sk); setExperiences(ex); setEducation(ed); setProjects(pr); setContacts(ct); setSocials(so);
     });
     if(id) getResume(Number(id)).then(setData);
   },[id]);
@@ -60,8 +62,79 @@ export default function Edit(){
         <section>
           <h3>Basics</h3>
           <label>Name<input value={data.name} onChange={e=>update('name', e.target.value)} /></label>
+          <label>Resume Label (role/company)<input value={data.label||''} onChange={e=>update('label', e.target.value)} placeholder="e.g., Backend Engineer – ACME"/></label>
           <label>Title<input value={data.title} onChange={e=>update('title', e.target.value)} /></label>
           <label>Summary<textarea rows={5} value={data.summary} onChange={e=>update('summary', e.target.value)} /></label>
+          <div className="card">
+            <div className="section-head"><h4>Contact</h4></div>
+            <div style={{marginBottom:12}}>
+              <strong>Select from library:</strong>
+              <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:8}}>
+                {contacts.map(c=>(
+                  <button key={c.id} type="button" onClick={()=> update('contact', c)} style={{fontSize:12}}>
+                    {c.email && `📧 ${c.email} `}
+                    {c.phone && `📞 ${c.phone} `}
+                    {c.location && `📍 ${c.location}`}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="row">
+              <label>Email<input value={data.contact?.email||''} onChange={e=>update('contact', {...(data.contact||{}), email:e.target.value} as ContactInfo)}/></label>
+              <label>Phone<input value={data.contact?.phone||''} onChange={e=>update('contact', {...(data.contact||{}), phone:e.target.value} as ContactInfo)}/></label>
+            </div>
+            <div className="row">
+              <label>LinkedIn<input value={data.contact?.linkedin||''} onChange={e=>update('contact', {...(data.contact||{}), linkedin:e.target.value} as ContactInfo)} placeholder="in/username or full URL"/></label>
+              <label>GitHub<input value={data.contact?.github||''} onChange={e=>update('contact', {...(data.contact||{}), github:e.target.value} as ContactInfo)} /></label>
+            </div>
+            <div className="row">
+              <label>Website<input value={data.contact?.website||''} onChange={e=>update('contact', {...(data.contact||{}), website:e.target.value} as ContactInfo)} /></label>
+              <label>Location<input value={data.contact?.location||''} onChange={e=>update('contact', {...(data.contact||{}), location:e.target.value} as ContactInfo)} /></label>
+            </div>
+            <form onSubmit={async (e)=>{ e.preventDefault(); const fd=new FormData(e.currentTarget); const contact: ContactInfo = { email:String(fd.get('newEmail')||'')||undefined, phone:String(fd.get('newPhone')||'')||undefined, website:String(fd.get('newWebsite')||'')||undefined, linkedin:String(fd.get('newLinkedin')||'')||undefined, github:String(fd.get('newGithub')||'')||undefined, location:String(fd.get('newLocation')||'')||undefined }; const created = await createContact(contact); update('contact', created); setContacts(await listContacts()); (e.target as HTMLFormElement).reset(); }} style={{marginTop:12,padding:12,border:'1px solid #ddd',borderRadius:6}}>
+              <strong>Or add new to library:</strong>
+              <div className="row" style={{marginTop:8}}>
+                <input name="newEmail" placeholder="Email" size={15}/>
+                <input name="newPhone" placeholder="Phone" size={15}/>
+                <input name="newLinkedin" placeholder="LinkedIn" size={15}/>
+              </div>
+              <div className="row">
+                <input name="newGithub" placeholder="GitHub" size={15}/>
+                <input name="newWebsite" placeholder="Website" size={15}/>
+                <input name="newLocation" placeholder="Location" size={15}/>
+              </div>
+              <button type="submit">Add & Use</button>
+            </form>
+            <div style={{marginTop:12}}>
+              <h4>Social Links</h4>
+              <div style={{marginBottom:8}}>
+                <strong>Select from library:</strong>
+                <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:8}}>
+                  {socials.map(s=>(
+                    <button key={s.id} type="button" onClick={()=> update('socials', [...(data.socials||[]), s])} style={{fontSize:12}}>
+                      {s.label}: {s.url}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {(data.socials||[]).map((s,i)=> (
+                <div key={i} className="row" style={{alignItems:'end'}}>
+                  <label>Label<input value={s.label} onChange={e=>{ const arr=[...(data.socials||[])]; arr[i] = {...s, label:e.target.value}; update('socials', arr as SocialLink[]); }}/></label>
+                  <label>URL<input value={s.url} onChange={e=>{ const arr=[...(data.socials||[])]; arr[i] = {...s, url:e.target.value}; update('socials', arr as SocialLink[]); }}/></label>
+                  <button className="danger" onClick={()=>{ const arr=[...(data.socials||[])]; arr.splice(i,1); update('socials', arr as SocialLink[]); }} type="button">Remove</button>
+                </div>
+              ))}
+              <button type="button" onClick={()=> update('socials', [ ...(data.socials||[]), { label:'', url:'' } ])}>Add Inline</button>
+              <form onSubmit={async (e)=>{ e.preventDefault(); const fd=new FormData(e.currentTarget); const social = { label:String(fd.get('newLabel')||''), url:String(fd.get('newUrl')||'') }; if(!social.label || !social.url) return; const created = await createSocial(social); update('socials', [...(data.socials||[]), created]); setSocials(await listSocials()); (e.target as HTMLFormElement).reset(); }} style={{marginTop:8,padding:8,border:'1px solid #ddd',borderRadius:6}}>
+                <strong>Or add new to library:</strong>
+                <div className="row" style={{marginTop:8}}>
+                  <input name="newLabel" placeholder="Label"/>
+                  <input name="newUrl" placeholder="URL"/>
+                  <button type="submit">Add & Use</button>
+                </div>
+              </form>
+            </div>
+          </div>
           <div className="card">
             <div className="section-head"><h4>Skills</h4></div>
             <div style={{display:'flex',gap:12, flexWrap:'wrap'}}>

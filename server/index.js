@@ -9,6 +9,8 @@ const {
   listExperiences, createExperienceEntity,
   listEducation, createEducationEntity,
   listProjects, createProjectEntity,
+  listSocials, createSocialEntity,
+  listContacts, createContactEntity,
   seedIfEmpty
 } = require('./db');
 const app = express();
@@ -76,5 +78,9 @@ app.get('/api/education', (_,res)=> res.json(listEducation()));
 app.post('/api/education', (req,res)=> res.json(createEducationEntity(req.body)));
 app.get('/api/projects', (_,res)=> res.json(listProjects()));
 app.post('/api/projects', (req,res)=> res.json(createProjectEntity(req.body)));
+app.get('/api/socials', (_,res)=> res.json(listSocials()));
+app.post('/api/socials', (req,res)=> res.json(createSocialEntity(req.body)));
+app.get('/api/contacts', (_,res)=> res.json(listContacts()));
+app.post('/api/contacts', (req,res)=> res.json(createContactEntity(req.body)));
 
 app.listen(PORT, ()=> console.log(`Server running on ${PORT}`));

@@ -1,4 +1,4 @@
-import { ResumeData, Skill, ExperienceEntity, EducationEntity, ProjectEntity } from './types';
+import { ResumeData, Skill, ExperienceEntity, EducationEntity, ProjectEntity, ContactInfo } from './types';
 
 const base = '/api';
 
@@ -69,5 +69,23 @@ export async function listProjects(): Promise<ProjectEntity[]> {
 }
 export async function createProject(p: ProjectEntity): Promise<ProjectEntity> {
   const r = await fetch(`${base}/projects`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(p)});
+  return r.json();
+}
+
+export async function listSocials(): Promise<{id: number; label: string; url: string}[]> {
+  const r = await fetch(`${base}/socials`);
+  return r.json();
+}
+export async function createSocial(social: {label: string; url: string}): Promise<{id: number; label: string; url: string}> {
+  const r = await fetch(`${base}/socials`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(social)});
+  return r.json();
+}
+
+export async function listContacts(): Promise<Array<ContactInfo & {id: number}>> {
+  const r = await fetch(`${base}/contacts`);
+  return r.json();
+}
+export async function createContact(contact: ContactInfo): Promise<ContactInfo & {id: number}> {
+  const r = await fetch(`${base}/contacts`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(contact)});
   return r.json();
 }

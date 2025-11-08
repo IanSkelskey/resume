@@ -7,11 +7,27 @@ db.pragma('journal_mode = WAL');
 // Core entities
 db.prepare(`CREATE TABLE IF NOT EXISTS resumes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
+  name TEXT NOT NULL, -- candidate legal name (constant across resumes)
+  label TEXT NOT NULL DEFAULT '', -- application/job specific label
   title TEXT NOT NULL,
   summary TEXT NOT NULL,
+  contact TEXT NOT NULL DEFAULT '{}', -- JSON object
+  socials TEXT NOT NULL DEFAULT '[]', -- JSON array
   updated_at TEXT NOT NULL
 )`).run();
+// Ensure legacy DB upgraded to include label column
+try {
+  const cols = db.prepare(`PRAGMA table_info(resumes)`).all();
+  if(!cols.some(c=>c.name==='label')){
+    db.prepare(`ALTER TABLE resumes ADD COLUMN label TEXT NOT NULL DEFAULT ''`).run();
+  }
+  if(!cols.some(c=>c.name==='contact')){
+    db.prepare(`ALTER TABLE resumes ADD COLUMN contact TEXT NOT NULL DEFAULT '{}'`).run();
+  }
+  if(!cols.some(c=>c.name==='socials')){
+    db.prepare(`ALTER TABLE resumes ADD COLUMN socials TEXT NOT NULL DEFAULT '[]'`).run();
+  }
+} catch (e){ /* ignore */ }
 
 db.prepare(`CREATE TABLE IF NOT EXISTS skills (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -41,6 +57,22 @@ db.prepare(`CREATE TABLE IF NOT EXISTS projects (
   description TEXT,
   link TEXT,
   bullets TEXT NOT NULL -- JSON array
+)`).run();
+
+db.prepare(`CREATE TABLE IF NOT EXISTS socials (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  label TEXT NOT NULL,
+  url TEXT NOT NULL
+)`).run();
+
+db.prepare(`CREATE TABLE IF NOT EXISTS contacts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT,
+  phone TEXT,
+  website TEXT,
+  linkedin TEXT,
+  github TEXT,
+  location TEXT
 )`).run();
 
 // Mapping tables (ordered composition)
@@ -113,8 +145,22 @@ function createProject(p){
   return info.lastInsertRowid;
 }
 
+function createSocial(s){
+  const info = db.prepare(`INSERT INTO socials (label,url) VALUES (?,?)`).run(
+    s.label, s.url
+  );
+  return info.lastInsertRowid;
+}
+
+function createContact(c){
+  const info = db.prepare(`INSERT INTO contacts (email,phone,website,linkedin,github,location) VALUES (?,?,?,?,?,?)`).run(
+    c.email || null, c.phone || null, c.website || null, c.linkedin || null, c.github || null, c.location || null
+  );
+  return info.lastInsertRowid;
+}
+
 function listResumes(){
-  return db.prepare('SELECT id,name,title,summary,updated_at FROM resumes ORDER BY updated_at DESC').all();
+  return db.prepare('SELECT id,name,label,title,summary,updated_at FROM resumes ORDER BY updated_at DESC').all();
 }
 
 function getResumeAggregate(id){
@@ -130,13 +176,25 @@ function getResumeAggregate(id){
   const projects = db.prepare(`SELECT p.* FROM resume_projects rp JOIN projects p ON p.id = rp.project_id WHERE rp.resume_id = ? ORDER BY rp.ord`).all(id).map(r=>({
     name: r.name, description: r.description || '', link: r.link || '', bullets: JSON.parse(r.bullets||'[]')
   }));
-  return { id: base.id, name: base.name, title: base.title, summary: base.summary, experiences, skills, education, projects, updated_at: base.updated_at };
+  return {
+    id: base.id,
+    name: base.name,
+    label: base.label,
+    title: base.title,
+    summary: base.summary,
+    contact: JSON.parse(base.contact || '{}'),
+    socials: JSON.parse(base.socials || '[]'),
+    experiences, skills, education, projects,
+    updated_at: base.updated_at
+  };
 }
 
 function createResume(payload){
   const now = new Date().toISOString();
-  const info = db.prepare('INSERT INTO resumes (name,title,summary,updated_at) VALUES (?,?,?,?)').run(
-    payload.name, payload.title, payload.summary, now
+  const info = db.prepare('INSERT INTO resumes (name,label,title,summary,contact,socials,updated_at) VALUES (?,?,?,?,?,?,?)').run(
+    payload.name, payload.label || '', payload.title, payload.summary,
+    JSON.stringify(payload.contact || {}), JSON.stringify(payload.socials || []),
+    now
   );
   const resumeId = info.lastInsertRowid;
   // Attach compositions from either ids or objects/strings (back-compat with old client)
@@ -169,8 +227,10 @@ function createResume(payload){
 
 function updateResume(id, payload){
   const now = new Date().toISOString();
-  db.prepare('UPDATE resumes SET name=?, title=?, summary=?, updated_at=? WHERE id=?').run(
-    payload.name, payload.title, payload.summary, now, id
+  db.prepare('UPDATE resumes SET name=?, label=?, title=?, summary=?, contact=?, socials=?, updated_at=? WHERE id=?').run(
+    payload.name, payload.label || '', payload.title, payload.summary,
+    JSON.stringify(payload.contact || {}), JSON.stringify(payload.socials || []),
+    now, id
   );
   // Reset mappings then re-add based on provided arrays (if any provided; keep existing if not present)
   if('skills' in payload){
@@ -219,6 +279,13 @@ function listProjects(){
   return rows.map(r=>({ id:r.id, name:r.name, description:r.description||'', link:r.link||'', bullets: JSON.parse(r.bullets||'[]') }));
 }
 function createProjectEntity(payload){ return { id: createProject(payload), ...payload }; }
+function listSocials(){ return db.prepare('SELECT * FROM socials ORDER BY id DESC').all(); }
+function createSocialEntity(payload){ return { id: createSocial(payload), ...payload }; }
+function listContacts(){
+  const rows = db.prepare('SELECT * FROM contacts ORDER BY id DESC').all();
+  return rows.map(r=>({ id:r.id, email:r.email||undefined, phone:r.phone||undefined, website:r.website||undefined, linkedin:r.linkedin||undefined, github:r.github||undefined, location:r.location||undefined }));
+}
+function createContactEntity(payload){ return { id: createContact(payload), ...payload }; }
 
 function seedIfEmpty(){
   const count = db.prepare('SELECT COUNT(*) as c FROM resumes').get().c;
@@ -256,8 +323,14 @@ function seedIfEmpty(){
   // Seed resume composition
   const resume = createResume({
     name:'Ian Skelskey',
+    label:'General Purpose / Evergreen',
     title:'Software Engineer',
     summary:'Innovative software engineer specializing in full-stack development with expertise in SQL, React, and RESTful APIs. Experienced in managing and optimizing large-scale library systems, contributing to open-source software, and developing client-centric solutions.',
+    contact: { email: 'ianskelskey@gmail.com', phone: '860-830-5595', linkedin: 'in/ianskelskey', github: 'github.com/ianskelskey', website: '', location: '' },
+    socials: [
+      { label: 'LinkedIn', url: 'https://www.linkedin.com/in/ianskelskey' },
+      { label: 'GitHub', url: 'https://github.com/ianskelskey' }
+    ],
     skills:[sJava, sTS, sReact, sSQL],
     experiences:[e1,e2,e3],
     education:[ed1,ed2],
@@ -277,5 +350,7 @@ module.exports = {
   listExperiences, createExperienceEntity,
   listEducation, createEducationEntity,
   listProjects, createProjectEntity,
+  listSocials, createSocialEntity,
+  listContacts, createContactEntity,
   seedIfEmpty
 };

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { exportPdf, getResume } from '../api';
 import { EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill } from '../types';
+import { MdEmail, MdPhone, MdLocationOn } from 'react-icons/md';
+import { FaGithub, FaLinkedin, FaGlobe } from 'react-icons/fa';
 
 export default function Preview(){
   const { id } = useParams();
@@ -30,6 +32,7 @@ export default function Preview(){
           <div className="header-band">
             <h1 className="name">{data.name}</h1>
             <div className="title">{data.title}</div>
+            {data.label && <div style={{marginTop:4,fontSize:12,opacity:0.85}}>{data.label}</div>}
           </div>
           <div className="columns">
             <main>
@@ -88,6 +91,53 @@ export default function Preview(){
               )}
             </main>
             <aside>
+              <section>
+                <h2>Contact</h2>
+                <ul className="contact-list">
+                  {data.contact?.email && (
+                    <li>
+                      <MdEmail className="contact-icon" />
+                      <a href={`mailto:${data.contact.email}`}>{data.contact.email}</a>
+                    </li>
+                  )}
+                  {data.contact?.phone && (
+                    <li>
+                      <MdPhone className="contact-icon" />
+                      <span>{data.contact.phone}</span>
+                    </li>
+                  )}
+                  {data.contact?.location && (
+                    <li>
+                      <MdLocationOn className="contact-icon" />
+                      <span>{data.contact.location}</span>
+                    </li>
+                  )}
+                  {data.contact?.github && (
+                    <li>
+                      <FaGithub className="contact-icon" />
+                      <a href={data.contact.github.startsWith('http') ? data.contact.github : `https://github.com/${data.contact.github.replace(/^(https?:\/\/(www\.)?github\.com\/|\/)/,'')}`} target="_blank" rel="noopener noreferrer">
+                        {data.contact.github.replace(/^(https?:\/\/(www\.)?github\.com\/|\/)/,'')}
+                      </a>
+                    </li>
+                  )}
+                  {data.contact?.linkedin && (
+                    <li>
+                      <FaLinkedin className="contact-icon" />
+                      <a href={data.contact.linkedin.startsWith('http') ? data.contact.linkedin : `https://www.linkedin.com/in/${data.contact.linkedin.replace(/^(https?:\/\/(www\.)?linkedin\.com\/in\/|\/)/,'')}`} target="_blank" rel="noopener noreferrer">
+                        {data.contact.linkedin.replace(/^(https?:\/\/(www\.)?linkedin\.com\/in\/|\/)/,'')}
+                      </a>
+                    </li>
+                  )}
+                  {data.contact?.website && (
+                    <li>
+                      <FaGlobe className="contact-icon" />
+                      <a href={data.contact.website.startsWith('http') ? data.contact.website : `https://${data.contact.website}`} target="_blank" rel="noopener noreferrer">
+                        {data.contact.website.replace(/^https?:\/\/(www\.)?/, '')}
+                      </a>
+                    </li>
+                  )}
+                </ul>
+              </section>
               <section>
                 <h2>Skills</h2>
                 <ul className="skills">

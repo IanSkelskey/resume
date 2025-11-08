@@ -1,18 +1,20 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { createEducation, createExperience, createProject, createSkill, listEducation, listExperiences, listProjects, listSkills } from '../api';
-import { EducationEntity, ExperienceEntity, ProjectEntity, Skill } from '../types';
+import { createContact, createEducation, createExperience, createProject, createSkill, createSocial, listContacts, listEducation, listExperiences, listProjects, listSkills, listSocials } from '../api';
+import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, Skill } from '../types';
 
 export default function Library(){
   const [skills, setSkills] = useState<Skill[]>([]);
   const [experiences, setExperiences] = useState<ExperienceEntity[]>([]);
   const [education, setEducation] = useState<EducationEntity[]>([]);
   const [projects, setProjects] = useState<ProjectEntity[]>([]);
+  const [socials, setSocials] = useState<{id: number; label: string; url: string}[]>([]);
+  const [contacts, setContacts] = useState<Array<ContactInfo & {id: number}>>([]);
 
   useEffect(()=>{ refresh(); },[]);
   async function refresh(){
-    const [sk, ex, ed, pr] = await Promise.all([listSkills(), listExperiences(), listEducation(), listProjects()]);
-    setSkills(sk); setExperiences(ex); setEducation(ed); setProjects(pr);
+    const [sk, ex, ed, pr, so, ct] = await Promise.all([listSkills(), listExperiences(), listEducation(), listProjects(), listSocials(), listContacts()]);
+    setSkills(sk); setExperiences(ex); setEducation(ed); setProjects(pr); setSocials(so); setContacts(ct);
   }
 
   async function addSkill(e: React.FormEvent<HTMLFormElement>){
@@ -37,6 +39,24 @@ export default function Library(){
     e.preventDefault(); const fd = new FormData(e.currentTarget);
     const p: ProjectEntity = { name: String(fd.get('name')||''), description: String(fd.get('description')||''), link: String(fd.get('link')||''), bullets: String(fd.get('bullets')||'').split('\n').filter(Boolean) };
     await createProject(p); e.currentTarget.reset(); refresh();
+  }
+  async function addSocial(e: React.FormEvent<HTMLFormElement>){
+    e.preventDefault(); const fd = new FormData(e.currentTarget);
+    const social = { label: String(fd.get('label')||''), url: String(fd.get('url')||'') };
+    if(!social.label || !social.url) return;
+    await createSocial(social); e.currentTarget.reset(); refresh();
+  }
+  async function addContact(e: React.FormEvent<HTMLFormElement>){
+    e.preventDefault(); const fd = new FormData(e.currentTarget);
+    const contact: ContactInfo = {
+      email: String(fd.get('email')||'') || undefined,
+      phone: String(fd.get('phone')||'') || undefined,
+      website: String(fd.get('website')||'') || undefined,
+      linkedin: String(fd.get('linkedin')||'') || undefined,
+      github: String(fd.get('github')||'') || undefined,
+      location: String(fd.get('location')||'') || undefined
+    };
+    await createContact(contact); e.currentTarget.reset(); refresh();
   }
 
   return (
@@ -97,6 +117,50 @@ export default function Library(){
           </form>
           <ul>
             {projects.map(p=> (<li key={p.id}><strong>{p.name}</strong> {p.link ? `( ${p.link} )` : ''}</li>))}
+          </ul>
+        </section>
+
+        <section>
+          <h3>Contact Info</h3>
+          <form onSubmit={addContact} className="card">
+            <div className="row">
+              <label>Email<input name="email" type="email"/></label>
+              <label>Phone<input name="phone"/></label>
+            </div>
+            <div className="row">
+              <label>LinkedIn<input name="linkedin" placeholder="username or full URL"/></label>
+              <label>GitHub<input name="github" placeholder="username or full URL"/></label>
+            </div>
+            <div className="row">
+              <label>Website<input name="website"/></label>
+              <label>Location<input name="location"/></label>
+            </div>
+            <button type="submit">Add Contact Info</button>
+          </form>
+          <ul>
+            {contacts.map(c=> (
+              <li key={c.id}>
+                {c.email && <span>📧 {c.email} </span>}
+                {c.phone && <span>📞 {c.phone} </span>}
+                {c.location && <span>📍 {c.location} </span>}
+                {c.github && <span>GitHub: {c.github} </span>}
+                {c.linkedin && <span>LinkedIn: {c.linkedin} </span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section>
+          <h3>Social Links</h3>
+          <form onSubmit={addSocial} className="card">
+            <div className="row">
+              <label>Label<input name="label" placeholder="e.g., LinkedIn"/></label>
+              <label>URL<input name="url" placeholder="https://..."/></label>
+            </div>
+            <button type="submit">Add Social Link</button>
+          </form>
+          <ul>
+            {socials.map(s=> (<li key={s.id}><strong>{s.label}</strong>: {s.url}</li>))}
           </ul>
         </section>
       </div>
