@@ -12,7 +12,7 @@ import './styles.css'
 
 const router = createBrowserRouter([
   { path: '/', element: <DashboardLayout><App /></DashboardLayout> },
-  { path: '/edit/:id?', element: <DashboardLayout><Edit /></DashboardLayout> },
+  { path: '/edit/:id?', element: <Edit /> },
   { path: '/library', element: <DashboardLayout><Library /></DashboardLayout> },
   { path: '/database', element: <DashboardLayout><Database /></DashboardLayout> },
   { path: '/preview/:id', element: <Preview /> }

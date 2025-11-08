@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { createContact, createEducation, createExperience, createProject, createSkill, createSocial, getResume, listContacts, listEducation, listExperiences, listProjects, listSkills, listSocials, saveResume } from '../api';
 import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill, SocialLink, emptyResume } from '../types';
+import DashboardLayout from '../components/DashboardLayout';
 
 export default function Edit(){
   const { id } = useParams();
@@ -13,6 +14,8 @@ export default function Edit(){
   const [projects, setProjects] = useState<ProjectEntity[]>([]);
   const [contacts, setContacts] = useState<Array<ContactInfo & {id: number}>>([]);
   const [socials, setSocials] = useState<Array<{id: number; label: string; url: string}>>([]);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const previewRef = useRef<HTMLIFrameElement>(null);
   const isNew = useMemo(() => !id, [id]);
 
   useEffect(() => {
@@ -22,6 +25,21 @@ export default function Edit(){
     });
     if(id) getResume(Number(id)).then(setData);
   },[id]);
+
+  // Check for overflow whenever data changes
+  useEffect(() => {
+    const checkOverflow = () => {
+      // Rough estimation: 1100px is approximately one page height
+      const estimatedHeight = 
+        200 + // header
+        (data.summary?.length || 0) * 0.2 + // summary
+        (data.experiences?.length || 0) * 150 + // experiences
+        (data.education?.length || 0) * 40 + // education
+        (data.projects?.length || 0) * 120; // projects
+      setHasOverflow(estimatedHeight > 1100);
+    };
+    checkOverflow();
+  }, [data]);
 
   function update<K extends keyof ResumeData>(key: K, value: ResumeData[K]){
     setData(d => ({...d, [key]: value}));
@@ -49,7 +67,13 @@ export default function Edit(){
     navigate(`/preview/${saved.id}`);
   }
 
+  const statusMessage = hasOverflow ? {
+    type: 'warning' as const,
+    text: 'Content Overflow Warning: Your resume content may exceed one page. Consider reducing content to ensure everything fits in the PDF.'
+  } : null;
+
   return (
+    <DashboardLayout statusMessage={statusMessage}>
     <div className="content-page">
       <div className="content-header">
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -368,5 +392,6 @@ export default function Edit(){
         </section>
       </div>
     </div>
+    </DashboardLayout>
   );
 }

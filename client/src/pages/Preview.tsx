@@ -11,6 +11,7 @@ export default function Preview(){
   const [data,setData] = useState<ResumeData|null>(null);
   const [contacts,setContacts] = useState<Array<ContactInfo & {id: number}>>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [hasOverflow, setHasOverflow] = useState(false);
   const [search] = useSearchParams();
   const pdfMode = useMemo(()=> search.get('pdf') === '1', [search]);
   const ref = useRef<HTMLDivElement>(null);
@@ -24,6 +25,13 @@ export default function Preview(){
         setData(resume);
         setContacts(contactsList);
         setSkills(skillsList);
+        // Check for overflow after render
+        setTimeout(() => {
+          if (ref.current) {
+            const isOverflowing = ref.current.scrollHeight > ref.current.clientHeight;
+            setHasOverflow(isOverflowing);
+          }
+        }, 100);
       });
     }
   },[id]);
@@ -75,10 +83,9 @@ export default function Preview(){
     return (
       <div className="preview-wrapper" style={{padding:0}}>
         <div ref={ref} id="resume-canvas" className="resume-sheet">
-          <div className="header-band">
+          <div className="header-band" style={{textAlign:'center'}}>
             <h1 className="name">{data.name}</h1>
             <div className="title">{data.title}</div>
-            {data.label && <div style={{marginTop:4,fontSize:12,opacity:0.85}}>{data.label}</div>}
           </div>
           <div className="columns">
             <main>
@@ -104,18 +111,6 @@ export default function Preview(){
                           {ex.bullets.map((b: string, j: number)=>(<li key={j}>{b}</li>))}
                         </ul>
                       )}
-                    </div>
-                  );
-                })}
-              </section>
-              <section>
-                <h2>Education</h2>
-                {data.education.map((e,i)=>{
-                  const ed = (typeof e === 'number') ? null : (e as EducationEntity);
-                  if(!ed) return null;
-                  return (
-                    <div key={i} className="edu-item">
-                      <div><strong>{ed.degree}</strong>, {ed.institution} ({ed.end})</div>
                     </div>
                   );
                 })}
@@ -156,6 +151,18 @@ export default function Preview(){
                   })}
                 </ul>
               </section>
+              <section>
+                <h2>Education</h2>
+                {data.education.map((e,i)=>{
+                  const ed = (typeof e === 'number') ? null : (e as EducationEntity);
+                  if(!ed) return null;
+                  return (
+                    <div key={i} className="edu-item">
+                      <div><strong>{ed.degree}</strong>, {ed.institution} ({ed.end})</div>
+                    </div>
+                  );
+                })}
+              </section>
             </aside>
           </div>
         </div>
@@ -163,8 +170,13 @@ export default function Preview(){
     );
   }
 
+  const statusMessage = hasOverflow ? {
+    type: 'warning' as const,
+    text: 'Content Overflow: Your resume content exceeds one page. Some content will be cut off in the PDF. Please edit your resume to reduce content.'
+  } : null;
+
   return (
-    <DashboardLayout>
+    <DashboardLayout statusMessage={statusMessage}>
       <div className="content-page">
         <div className="content-header">
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
@@ -179,11 +191,32 @@ export default function Preview(){
           </div>
         </div>
         <div className="preview-wrapper">
-          <div ref={ref} id="resume-canvas" className="resume-sheet">
-          <div className="header-band">
+          <div ref={ref} id="resume-canvas" className="resume-sheet" style={{position:'relative'}}>
+          {hasOverflow && (
+            <div style={{
+              position:'absolute',
+              bottom:8,
+              right:8,
+              width:32,
+              height:32,
+              background:'#f59e0b',
+              color:'#fff',
+              borderRadius:'50%',
+              display:'flex',
+              alignItems:'center',
+              justifyContent:'center',
+              fontSize:18,
+              fontWeight:'bold',
+              cursor:'help',
+              boxShadow:'0 2px 8px rgba(0,0,0,0.2)',
+              zIndex:10
+            }} title="Content overflow! This line marks where the page ends. Content below will be cut off in the PDF.">
+              ✂
+            </div>
+          )}
+          <div className="header-band" style={{textAlign:'center'}}>
             <h1 className="name">{data.name}</h1>
             <div className="title">{data.title}</div>
-            {data.label && <div style={{marginTop:4,fontSize:12,opacity:0.85}}>{data.label}</div>}
           </div>
           <div className="columns">
             <main>
@@ -209,18 +242,6 @@ export default function Preview(){
                           {ex.bullets.map((b: string, j: number)=>(<li key={j}>{b}</li>))}
                         </ul>
                       )}
-                    </div>
-                  );
-                })}
-              </section>
-              <section>
-                <h2>Education</h2>
-                {data.education.map((e,i)=>{
-                  const ed = (typeof e === 'number') ? null : (e as EducationEntity);
-                  if(!ed) return null;
-                  return (
-                    <div key={i} className="edu-item">
-                      <div><strong>{ed.degree}</strong>, {ed.institution} ({ed.end})</div>
                     </div>
                   );
                 })}
@@ -260,6 +281,18 @@ export default function Preview(){
                     return skillName ? (<li key={i}>{skillName}</li>) : null;
                   })}
                 </ul>
+              </section>
+              <section>
+                <h2>Education</h2>
+                {data.education.map((e,i)=>{
+                  const ed = (typeof e === 'number') ? null : (e as EducationEntity);
+                  if(!ed) return null;
+                  return (
+                    <div key={i} className="edu-item">
+                      <div><strong>{ed.degree}</strong>, {ed.institution} ({ed.end})</div>
+                    </div>
+                  );
+                })}
               </section>
             </aside>
           </div>

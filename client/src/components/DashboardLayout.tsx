@@ -4,9 +4,10 @@ import { MdDashboard, MdWork, MdLibraryBooks, MdVisibility, MdStorage } from 're
 
 interface DashboardLayoutProps {
   children: ReactNode;
+  statusMessage?: { type: 'warning' | 'info' | 'error'; text: string } | null;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, statusMessage }: DashboardLayoutProps) {
   const location = useLocation();
   
   const navItems = [
@@ -47,6 +48,15 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           {children}
         </main>
       </div>
+      
+      {statusMessage && (
+        <div className={`dashboard-statusbar dashboard-statusbar-${statusMessage.type}`}>
+          {statusMessage.type === 'warning' && '⚠️ '}
+          {statusMessage.type === 'error' && '❌ '}
+          {statusMessage.type === 'info' && 'ℹ️ '}
+          {statusMessage.text}
+        </div>
+      )}
     </div>
   );
 }
