@@ -5,12 +5,13 @@ import App from './pages/App'
 import Edit from './pages/Edit'
 import Preview from './pages/Preview'
 import Library from './pages/Library'
+import DashboardLayout from './components/DashboardLayout'
 import './styles.css'
 
 const router = createBrowserRouter([
-  { path: '/', element: <App /> },
-  { path: '/edit/:id?', element: <Edit /> },
-  { path: '/library', element: <Library /> },
+  { path: '/', element: <DashboardLayout><App /></DashboardLayout> },
+  { path: '/edit/:id?', element: <DashboardLayout><Edit /></DashboardLayout> },
+  { path: '/library', element: <DashboardLayout><Library /></DashboardLayout> },
   { path: '/preview/:id', element: <Preview /> }
 ])
 

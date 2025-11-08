@@ -60,11 +60,11 @@ export default function Library(){
   }
 
   return (
-    <div className="page">
-      <header className="topbar">
-        <h1>Library</h1>
-        <div className="actions"><Link to="/">Home</Link></div>
-      </header>
+    <div className="content-page">
+      <div className="content-header">
+        <h1 className="content-title">Library</h1>
+        <p className="content-subtitle">Manage your reusable resume components</p>
+      </div>
       <div className="editor" style={{maxWidth:1100}}>
         <section>
           <h3>Skills</h3>

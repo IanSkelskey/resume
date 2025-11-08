@@ -50,14 +50,18 @@ export default function Edit(){
   }
 
   return (
-    <div className="page">
-      <header className="topbar">
-        <h1>Edit Resume</h1>
-        <div className="actions">
-          <Link to="/">Back</Link>
-          <button onClick={onSave}>Save & Preview</button>
+    <div className="content-page">
+      <div className="content-header">
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div>
+            <h1 className="content-title">{isNew ? 'Create Resume' : 'Edit Resume'}</h1>
+            <p className="content-subtitle">Build and customize your resume</p>
+          </div>
+          <div style={{display:'flex',gap:'8px'}}>
+            <button onClick={onSave}>Save & Preview</button>
+          </div>
         </div>
-      </header>
+      </div>
       <div className="editor">
         <section>
           <h3>Basics</h3>
