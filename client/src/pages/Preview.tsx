@@ -16,16 +16,20 @@ export default function Preview(){
   if(!data) return <div style={{padding:'2rem'}}>Loading...</div>
 
   return (
-    <div className="page">
+    <div className="content-page">
       {!pdfMode && (
-        <header className="topbar">
-          <h1>Preview</h1>
-          <div className="actions">
-            <Link to={`/edit/${id}`}>Edit</Link>
-            <button onClick={()=>exportPdf(Number(id))}>Download PDF</button>
-            <Link to="/">Home</Link>
+        <div className="content-header">
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div>
+              <h1 className="content-title">Preview</h1>
+              <p className="content-subtitle">Review your resume</p>
+            </div>
+            <div style={{display:'flex',gap:'8px'}}>
+              <Link to={`/edit/${id}`}><button>Edit</button></Link>
+              <button onClick={()=>exportPdf(Number(id))}>Download PDF</button>
+            </div>
           </div>
-        </header>
+        </div>
       )}
       <div className="preview-wrapper" style={pdfMode ? {padding:0} : undefined}>
         <div ref={ref} id="resume-canvas" className="resume-sheet">

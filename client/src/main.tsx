@@ -12,7 +12,7 @@ const router = createBrowserRouter([
   { path: '/', element: <DashboardLayout><App /></DashboardLayout> },
   { path: '/edit/:id?', element: <DashboardLayout><Edit /></DashboardLayout> },
   { path: '/library', element: <DashboardLayout><Library /></DashboardLayout> },
-  { path: '/preview/:id', element: <Preview /> }
+  { path: '/preview/:id', element: <DashboardLayout><Preview /></DashboardLayout> }
 ])
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
