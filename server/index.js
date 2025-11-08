@@ -5,7 +5,8 @@ const {
   get: getResume,
   create: createResume,
   update: updateResume,
-  listSkills, createSkillEntity, deleteSkill,
+  listSkills, createSkillEntity, updateSkill, deleteSkill,
+  listSkillCategories, createSkillCategory, updateSkillCategory, deleteSkillCategory,
   listExperiences, createExperienceEntity, updateExperienceEntity, deleteExperience,
   listEducation, createEducationEntity, deleteEducation,
   listProjects, createProjectEntity, deleteProject,
@@ -73,7 +74,12 @@ app.get('/api/resumes/:id/pdf', async (req,res)=> {
 // Library entity endpoints
 app.get('/api/skills', (_,res)=> res.json(listSkills()));
 app.post('/api/skills', (req,res)=> res.json(createSkillEntity(req.body)));
+app.put('/api/skills/:id', (req,res)=> res.json(updateSkill(Number(req.params.id), req.body)));
 app.delete('/api/skills/:id', (req,res)=> { deleteSkill(Number(req.params.id)); res.json({success:true}); });
+app.get('/api/skill-categories', (_,res)=> res.json(listSkillCategories()));
+app.post('/api/skill-categories', (req,res)=> res.json(createSkillCategory(req.body)));
+app.put('/api/skill-categories/:id', (req,res)=> res.json(updateSkillCategory(Number(req.params.id), req.body)));
+app.delete('/api/skill-categories/:id', (req,res)=> { deleteSkillCategory(Number(req.params.id)); res.json({success:true}); });
 app.get('/api/experiences', (_,res)=> res.json(listExperiences()));
 app.post('/api/experiences', (req,res)=> res.json(createExperienceEntity(req.body)));
 app.put('/api/experiences/:id', (req,res)=> res.json(updateExperienceEntity(Number(req.params.id), req.body)));

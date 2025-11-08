@@ -29,10 +29,26 @@ try {
   }
 } catch (e){ /* ignore */ }
 
+db.prepare(`CREATE TABLE IF NOT EXISTS skill_categories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE,
+  ord INTEGER NOT NULL DEFAULT 0
+)`).run();
+
 db.prepare(`CREATE TABLE IF NOT EXISTS skills (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL UNIQUE
+  name TEXT NOT NULL UNIQUE,
+  category_id INTEGER,
+  FOREIGN KEY (category_id) REFERENCES skill_categories(id) ON DELETE SET NULL
 )`).run();
+
+// Migration: Add category_id column to existing skills table
+try {
+  const skillCols = db.prepare(`PRAGMA table_info(skills)`).all();
+  if(!skillCols.some(c=>c.name==='category_id')){
+    db.prepare(`ALTER TABLE skills ADD COLUMN category_id INTEGER REFERENCES skill_categories(id) ON DELETE SET NULL`).run();
+  }
+} catch (e){ /* ignore */ }
 
 db.prepare(`CREATE TABLE IF NOT EXISTS experiences (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,9 +135,9 @@ db.prepare(`CREATE TABLE IF NOT EXISTS resume_projects (
 )`).run();
 
 // Helpers to create entities
-function createSkill(name){
+function createSkill(name, categoryId = null){
   try {
-    const info = db.prepare('INSERT INTO skills (name) VALUES (?)').run(name);
+    const info = db.prepare('INSERT INTO skills (name, category_id) VALUES (?,?)').run(name, categoryId);
     return info.lastInsertRowid;
   } catch {
     // unique constraint; fetch existing id
@@ -277,9 +293,14 @@ function updateResume(id, payload){
 }
 
 // Library CRUD
-function listSkills(){ return db.prepare('SELECT * FROM skills ORDER BY name').all(); }
-function createSkillEntity(payload){ return { id: createSkill(payload.name), name: payload.name }; }
+function listSkills(){ return db.prepare('SELECT * FROM skills ORDER BY category_id, name').all(); }
+function createSkillEntity(payload){ const id = createSkill(payload.name, payload.category_id); return db.prepare('SELECT * FROM skills WHERE id=?').get(id); }
+function updateSkill(id, payload){ db.prepare('UPDATE skills SET name=?, category_id=? WHERE id=?').run(payload.name, payload.category_id || null, id); return db.prepare('SELECT * FROM skills WHERE id=?').get(id); }
 function deleteSkill(id){ db.prepare('DELETE FROM skills WHERE id = ?').run(id); }
+function listSkillCategories(){ return db.prepare('SELECT * FROM skill_categories ORDER BY ord, name').all(); }
+function createSkillCategory(payload){ const info = db.prepare('INSERT INTO skill_categories (name, ord) VALUES (?,?)').run(payload.name, payload.ord || 0); return { id: info.lastInsertRowid, ...payload }; }
+function updateSkillCategory(id, payload){ db.prepare('UPDATE skill_categories SET name=?, ord=? WHERE id=?').run(payload.name, payload.ord || 0, id); return db.prepare('SELECT * FROM skill_categories WHERE id=?').get(id); }
+function deleteSkillCategory(id){ db.prepare('DELETE FROM skill_categories WHERE id=?').run(id); }
 function listExperiences(){
   const rows = db.prepare('SELECT * FROM experiences ORDER BY id DESC').all();
   return rows.map(r=>({ id:r.id, role:r.role, company:r.company, location:r.location||undefined, work_type:r.work_type||undefined, start:r.start, end:r.end, bullets: JSON.parse(r.bullets||'[]') }));
@@ -403,7 +424,8 @@ module.exports = {
   create: createResume,
   update: updateResume,
   // libraries
-  listSkills, createSkillEntity, deleteSkill,
+  listSkills, createSkillEntity, updateSkill, deleteSkill,
+  listSkillCategories, createSkillCategory, updateSkillCategory, deleteSkillCategory,
   listExperiences, createExperienceEntity, updateExperienceEntity, deleteExperience,
   listEducation, createEducationEntity, deleteEducation,
   listProjects, createProjectEntity, deleteProject,

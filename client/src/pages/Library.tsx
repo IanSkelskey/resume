@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { listSkills, createSkill, listExperiences, createExperience, updateExperience, listEducation, createEducation, listProjects, createProject, listSocials, createSocial, listContacts, createContact, updateContact, deleteSkill, deleteExperience, deleteEducation, deleteProject, deleteSocial, deleteContact } from '../api';
-import type { Skill, ExperienceEntity, EducationEntity, ProjectEntity, SocialLink, ContactInfo } from '../types';
+import { listSkills, createSkill, updateSkill, deleteSkill, listSkillCategories, createSkillCategory, updateSkillCategory, deleteSkillCategory, listExperiences, createExperience, updateExperience, listEducation, createEducation, listProjects, createProject, listSocials, createSocial, listContacts, createContact, updateContact, deleteExperience, deleteEducation, deleteProject, deleteSocial, deleteContact } from '../api';
+import type { Skill, SkillCategory, ExperienceEntity, EducationEntity, ProjectEntity, SocialLink, ContactInfo } from '../types';
 import Modal, { ConfirmModal } from '../components/Modal';
 import { MdHome, MdComputer } from 'react-icons/md';
 import { HiOfficeBuilding } from 'react-icons/hi';
 
 export default function Library(){
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [categories, setCategories] = useState<SkillCategory[]>([]);
   const [experiences, setExperiences] = useState<ExperienceEntity[]>([]);
   const [education, setEducation] = useState<EducationEntity[]>([]);
   const [projects, setProjects] = useState<ProjectEntity[]>([]);
@@ -17,6 +18,8 @@ export default function Library(){
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingContact, setEditingContact] = useState<(ContactInfo & {id: number}) | null>(null);
   const [editingExperience, setEditingExperience] = useState<ExperienceEntity | null>(null);
+  const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
+  const [editingCategory, setEditingCategory] = useState<SkillCategory | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{show: boolean; message: string; onConfirm: () => void | Promise<void>}>({show: false, message: '', onConfirm: () => {}});
 
   const getWorkTypeIcon = (workType?: string) => {
@@ -39,22 +42,33 @@ export default function Library(){
 
   useEffect(()=>{ refresh(); },[]);
   async function refresh(){
-    const [sk, ex, ed, pr, so, ct] = await Promise.all([listSkills(), listExperiences(), listEducation(), listProjects(), listSocials(), listContacts()]);
-    setSkills(sk); setExperiences(ex); setEducation(ed); setProjects(pr); setSocials(so); setContacts(ct);
+    const [sk, cat, ex, ed, pr, so, ct] = await Promise.all([listSkills(), listSkillCategories(), listExperiences(), listEducation(), listProjects(), listSocials(), listContacts()]);
+    setSkills(sk); setCategories(cat); setExperiences(ex); setEducation(ed); setProjects(pr); setSocials(so); setContacts(ct);
   }
 
   async function addSkill(e: React.FormEvent<HTMLFormElement>){
     e.preventDefault();
     try {
-      const fd = new FormData(e.currentTarget); const name = String(fd.get('name')||'').trim(); if(!name) return;
-      await createSkill(name);
+      const fd = new FormData(e.currentTarget); 
+      const name = String(fd.get('name')||'').trim(); 
+      if(!name) return;
+      const categoryId = fd.get('category_id') ? Number(fd.get('category_id')) : undefined;
+      
+      if (editingSkill) {
+        await updateSkill(editingSkill.id!, { name, category_id: categoryId });
+        toast.success('Skill updated successfully');
+        setEditingSkill(null);
+      } else {
+        await createSkill(name, categoryId);
+        toast.success('Skill added successfully');
+      }
+      
       const form = e.currentTarget;
       if (form) form.reset();
       refresh();
       setShowAddModal(false);
-      toast.success('Skill added successfully');
     } catch (error) {
-      toast.error('Failed to add skill');
+      toast.error(editingSkill ? 'Failed to update skill' : 'Failed to add skill');
     }
   }
   async function addExperience(e: React.FormEvent<HTMLFormElement>){
@@ -156,6 +170,31 @@ export default function Library(){
     }
   }
 
+  async function addCategory(e: React.FormEvent<HTMLFormElement>){
+    e.preventDefault();
+    try {
+      const fd = new FormData(e.currentTarget);
+      const name = String(fd.get('name')||'').trim();
+      if (!name) return;
+      
+      if (editingCategory?.id) {
+        await updateSkillCategory(editingCategory.id, { name });
+        toast.success('Category updated successfully');
+        setEditingCategory(null);
+      } else {
+        await createSkillCategory({ name });
+        toast.success('Category added successfully');
+      }
+      
+      const form = e.currentTarget;
+      if (form) form.reset();
+      refresh();
+      setShowAddModal(false);
+    } catch (error) {
+      toast.error(editingCategory?.id ? 'Failed to update category' : 'Failed to add category');
+    }
+  }
+
   function handleDelete(message: string, onConfirm: () => Promise<void>) {
     setConfirmDelete({
       show: true,
@@ -191,17 +230,63 @@ export default function Library(){
         {activeTab === 'skills' && (
         <section>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-            <h3 style={{margin:0}}>Skills</h3>
-            <button onClick={() => setShowAddModal(true)}>+ Add Skill</button>
+            <h3 style={{margin:0}}>Skills & Categories</h3>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={() => { setEditingSkill(null); setEditingCategory({ name: '' }); setShowAddModal(true); }} style={{background:'#4a5568',color:'white'}}>+ Add Category</button>
+              <button onClick={() => { setEditingSkill(null); setEditingCategory(null); setShowAddModal(true); }}>+ Add Skill</button>
+            </div>
           </div>
-          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-            {skills.map(s=> (
-              <span key={s.id} className="skills-pill" style={{display:'flex',alignItems:'center',gap:6}}>
-                {s.name}
-                <button onClick={()=> handleDelete(`Delete skill "${s.name}"?`, async () => { await deleteSkill(s.id!); refresh(); })} style={{background:'none',border:'none',color:'#999',cursor:'pointer',padding:0,fontSize:14}} type="button">×</button>
-              </span>
-            ))}
-          </div>
+
+          {/* Categories with their skills */}
+          {categories.map(cat => {
+            const categorySkills = skills.filter(s => s.category_id === cat.id);
+            return (
+              <div key={cat.id} style={{marginBottom:24,padding:16,background:'#f9fafb',borderRadius:8}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+                  <div>
+                    <strong style={{fontSize:16}}>{cat.name}</strong>
+                    <span style={{fontSize:13,color:'#666',marginLeft:8}}>({categorySkills.length} skill{categorySkills.length !== 1 ? 's' : ''})</span>
+                  </div>
+                  <div style={{display:'flex',gap:6}}>
+                    <button onClick={() => { setEditingCategory(cat); setShowAddModal(true); }} style={{fontSize:12,padding:'4px 10px',background:'white'}}>Edit</button>
+                    <button className="danger" onClick={() => handleDelete(`Delete category "${cat.name}"? Skills will become uncategorized.`, async () => { await deleteSkillCategory(cat.id!); refresh(); })} style={{fontSize:12,padding:'4px 10px'}}>Delete</button>
+                  </div>
+                </div>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                  {categorySkills.length > 0 ? (
+                    categorySkills.map(s => (
+                      <span key={s.id} className="skills-pill" style={{display:'flex',alignItems:'center',gap:6}}>
+                        {s.name}
+                        <button onClick={() => { setEditingSkill(s); setShowAddModal(true); }} style={{background:'none',border:'none',color:'#666',cursor:'pointer',padding:0,fontSize:12}} type="button">✏️</button>
+                        <button onClick={() => handleDelete(`Delete skill "${s.name}"?`, async () => { await deleteSkill(s.id!); refresh(); })} style={{background:'none',border:'none',color:'#999',cursor:'pointer',padding:0,fontSize:14}} type="button">×</button>
+                      </span>
+                    ))
+                  ) : (
+                    <span style={{fontSize:13,color:'#999',fontStyle:'italic'}}>No skills in this category</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Uncategorized skills */}
+          {skills.filter(s => !s.category_id).length > 0 && (
+            <div style={{marginBottom:24,padding:16,background:'#f9fafb',borderRadius:8}}>
+              <div style={{marginBottom:12}}>
+                <strong style={{fontSize:16}}>Uncategorized</strong>
+                <span style={{fontSize:13,color:'#666',marginLeft:8}}>({skills.filter(s => !s.category_id).length} skill{skills.filter(s => !s.category_id).length !== 1 ? 's' : ''})</span>
+              </div>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                {skills.filter(s => !s.category_id).map(s => (
+                  <span key={s.id} className="skills-pill" style={{display:'flex',alignItems:'center',gap:6}}>
+                    {s.name}
+                    <button onClick={() => { setEditingSkill(s); setShowAddModal(true); }} style={{background:'none',border:'none',color:'#666',cursor:'pointer',padding:0,fontSize:12}} type="button">✏️</button>
+                    <button onClick={() => handleDelete(`Delete skill "${s.name}"?`, async () => { await deleteSkill(s.id!); refresh(); })} style={{background:'none',border:'none',color:'#999',cursor:'pointer',padding:0,fontSize:14}} type="button">×</button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
         )}
 
@@ -327,14 +412,35 @@ export default function Library(){
       </div>
 
       {/* Modals for adding items */}
-      {showAddModal && activeTab === 'skills' && (
-        <Modal isOpen={true} onClose={() => setShowAddModal(false)} title="Add New Skill" size="small">
+      {showAddModal && activeTab === 'skills' && editingCategory === null && (
+        <Modal isOpen={true} onClose={() => { setShowAddModal(false); setEditingSkill(null); }} title={editingSkill ? "Edit Skill" : "Add New Skill"} size="small">
           <form onSubmit={addSkill}>
             <label>
               Skill Name
-              <input name="name" placeholder="e.g., TypeScript" required />
+              <input name="name" placeholder="e.g., TypeScript" defaultValue={editingSkill?.name} required />
             </label>
-            <button type="submit" style={{marginTop:16}}>Add Skill</button>
+            <label>
+              Category (optional)
+              <select name="category_id" defaultValue={editingSkill?.category_id || ''}>
+                <option value="">-- No Category --</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </label>
+            <button type="submit" style={{marginTop:16}}>{editingSkill ? 'Update Skill' : 'Add Skill'}</button>
+          </form>
+        </Modal>
+      )}
+
+      {showAddModal && activeTab === 'skills' && editingCategory !== null && (
+        <Modal isOpen={true} onClose={() => { setShowAddModal(false); setEditingCategory(null); }} title={editingCategory?.id ? "Edit Category" : "Add New Category"} size="small">
+          <form onSubmit={addCategory}>
+            <label>
+              Category Name
+              <input name="name" placeholder="e.g., Programming Languages" defaultValue={editingCategory?.name} required />
+            </label>
+            <button type="submit" style={{marginTop:16}}>{editingCategory?.id ? 'Update Category' : 'Add Category'}</button>
           </form>
         </Modal>
       )}

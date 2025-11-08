@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { createContact, createEducation, createExperience, createProject, createSkill, createSocial, getResume, listContacts, listEducation, listExperiences, listProjects, listSkills, listSocials, saveResume } from '../api';
-import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill, SocialLink, emptyResume } from '../types';
+import { createContact, createEducation, createExperience, createProject, createSkill, createSocial, getResume, listContacts, listEducation, listExperiences, listProjects, listSkills, listSkillCategories, listSocials, saveResume } from '../api';
+import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill, SkillCategory, SocialLink, emptyResume } from '../types';
 import DashboardLayout from '../components/DashboardLayout';
 
 export default function Edit(){
@@ -9,6 +9,7 @@ export default function Edit(){
   const navigate = useNavigate();
   const [data, setData] = useState<ResumeData>(emptyResume);
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [categories, setCategories] = useState<SkillCategory[]>([]);
   const [experiences, setExperiences] = useState<ExperienceEntity[]>([]);
   const [education, setEducation] = useState<EducationEntity[]>([]);
   const [projects, setProjects] = useState<ProjectEntity[]>([]);
@@ -20,8 +21,8 @@ export default function Edit(){
 
   useEffect(() => {
     // Load library data
-    Promise.all([listSkills(), listExperiences(), listEducation(), listProjects(), listContacts(), listSocials()]).then(([sk, ex, ed, pr, ct, so])=>{
-      setSkills(sk); setExperiences(ex); setEducation(ed); setProjects(pr); setContacts(ct); setSocials(so);
+    Promise.all([listSkills(), listSkillCategories(), listExperiences(), listEducation(), listProjects(), listContacts(), listSocials()]).then(([sk, cat, ex, ed, pr, ct, so])=>{
+      setSkills(sk); setCategories(cat); setExperiences(ex); setEducation(ed); setProjects(pr); setContacts(ct); setSocials(so);
     });
     if(id) getResume(Number(id)).then(setData);
   },[id]);
@@ -176,29 +177,66 @@ export default function Edit(){
         <section style={{background:'white',padding:24,borderRadius:8,marginBottom:16,boxShadow:'0 1px 3px rgba(0,0,0,0.1)'}}>
           <h3 style={{marginTop:0,marginBottom:20,fontSize:20,fontWeight:600,color:'#1a1a1a'}}>Skills</h3>
           <div style={{marginBottom:16}}>
-            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-              {skills.map(s=>{
-                const selected = data.skills.some(x=> {
-                  const xId = typeof x==='object' ? (x as any).id : (typeof x === 'number' ? x : null);
-                  return xId === s.id || x === s.name;
-                });
-                return <label key={s.id} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 12px',background:selected?'#e6f2ff':'#f5f5f5',border:selected?'1px solid #0066cc':'1px solid #ddd',borderRadius:6,cursor:'pointer',fontSize:14,transition:'all 0.2s'}}>
-                  <input type="checkbox" checked={!!selected} onChange={(e)=>{
-                    const current = data.skills.slice();
-                    if(e.target.checked){ 
-                      current.push(s.id!); 
-                    } else { 
-                      const idx = current.findIndex(x=> {
+            {categories.map(cat => {
+              const categorySkills = skills.filter(s => s.category_id === cat.id);
+              if (categorySkills.length === 0) return null;
+              return (
+                <div key={cat.id} style={{marginBottom:20}}>
+                  <div style={{fontSize:14,fontWeight:600,color:'#555',marginBottom:8}}>{cat.name}</div>
+                  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                    {categorySkills.map(s=>{
+                      const selected = data.skills.some(x=> {
                         const xId = typeof x==='object' ? (x as any).id : (typeof x === 'number' ? x : null);
                         return xId === s.id || x === s.name;
-                      }); 
-                      if(idx>=0) current.splice(idx,1); 
-                    }
-                    update('skills', current);
-                  }} style={{cursor:'pointer'}}/> <span style={{color:selected?'#0066cc':'#333'}}>{s.name}</span>
-                </label>
-              })}
-            </div>
+                      });
+                      return <label key={s.id} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 12px',background:selected?'#e6f2ff':'#f5f5f5',border:selected?'1px solid #0066cc':'1px solid #ddd',borderRadius:6,cursor:'pointer',fontSize:14,transition:'all 0.2s'}}>
+                        <input type="checkbox" checked={!!selected} onChange={(e)=>{
+                          const current = data.skills.slice();
+                          if(e.target.checked){ 
+                            current.push(s.id!); 
+                          } else { 
+                            const idx = current.findIndex(x=> {
+                              const xId = typeof x==='object' ? (x as any).id : (typeof x === 'number' ? x : null);
+                              return xId === s.id || x === s.name;
+                            }); 
+                            if(idx>=0) current.splice(idx,1); 
+                          }
+                          update('skills', current);
+                        }} style={{cursor:'pointer'}}/> <span style={{color:selected?'#0066cc':'#333'}}>{s.name}</span>
+                      </label>
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            {skills.filter(s => !s.category_id).length > 0 && (
+              <div style={{marginBottom:20}}>
+                <div style={{fontSize:14,fontWeight:600,color:'#555',marginBottom:8}}>Uncategorized</div>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                  {skills.filter(s => !s.category_id).map(s=>{
+                    const selected = data.skills.some(x=> {
+                      const xId = typeof x==='object' ? (x as any).id : (typeof x === 'number' ? x : null);
+                      return xId === s.id || x === s.name;
+                    });
+                    return <label key={s.id} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 12px',background:selected?'#e6f2ff':'#f5f5f5',border:selected?'1px solid #0066cc':'1px solid #ddd',borderRadius:6,cursor:'pointer',fontSize:14,transition:'all 0.2s'}}>
+                      <input type="checkbox" checked={!!selected} onChange={(e)=>{
+                        const current = data.skills.slice();
+                        if(e.target.checked){ 
+                          current.push(s.id!); 
+                        } else { 
+                          const idx = current.findIndex(x=> {
+                            const xId = typeof x==='object' ? (x as any).id : (typeof x === 'number' ? x : null);
+                            return xId === s.id || x === s.name;
+                          }); 
+                          if(idx>=0) current.splice(idx,1); 
+                        }
+                        update('skills', current);
+                      }} style={{cursor:'pointer'}}/> <span style={{color:selected?'#0066cc':'#333'}}>{s.name}</span>
+                    </label>
+                  })}
+                </div>
+              </div>
+            )}
           </div>
           <form onSubmit={async (e)=>{ e.preventDefault(); const f=new FormData(e.currentTarget); const name=String(f.get('name')||'').trim(); if(!name) return; const created = await createSkill(name); update('skills', [...data.skills, created.id!]); setSkills(await listSkills()); (e.target as HTMLFormElement).reset(); }} style={{display:'flex',gap:8,marginTop:12}}>
             <input name="name" placeholder="Add new skill to library" style={{flex:1}}/>

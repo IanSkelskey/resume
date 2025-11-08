@@ -1,4 +1,4 @@
-import { ResumeData, Skill, ExperienceEntity, EducationEntity, ProjectEntity, ContactInfo } from './types';
+import { ResumeData, Skill, SkillCategory, ExperienceEntity, EducationEntity, ProjectEntity, ContactInfo } from './types';
 
 const base = '/api';
 
@@ -40,12 +40,32 @@ export async function listSkills(): Promise<Skill[]> {
   const r = await fetch(`${base}/skills`);
   return r.json();
 }
-export async function createSkill(name: string): Promise<Skill> {
-  const r = await fetch(`${base}/skills`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name})});
+export async function createSkill(name: string, category_id?: number): Promise<Skill> {
+  const r = await fetch(`${base}/skills`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, category_id})});
+  return r.json();
+}
+export async function updateSkill(id: number, data: Partial<Skill>): Promise<Skill> {
+  const r = await fetch(`${base}/skills/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)});
   return r.json();
 }
 export async function deleteSkill(id: number): Promise<void> {
   await fetch(`${base}/skills/${id}`, { method:'DELETE' });
+}
+
+export async function listSkillCategories(): Promise<SkillCategory[]> {
+  const r = await fetch(`${base}/skill-categories`);
+  return r.json();
+}
+export async function createSkillCategory(category: Omit<SkillCategory, 'id'>): Promise<SkillCategory> {
+  const r = await fetch(`${base}/skill-categories`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(category)});
+  return r.json();
+}
+export async function updateSkillCategory(id: number, category: Partial<SkillCategory>): Promise<SkillCategory> {
+  const r = await fetch(`${base}/skill-categories/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(category)});
+  return r.json();
+}
+export async function deleteSkillCategory(id: number): Promise<void> {
+  await fetch(`${base}/skill-categories/${id}`, { method:'DELETE' });
 }
 
 export async function listExperiences(): Promise<ExperienceEntity[]> {

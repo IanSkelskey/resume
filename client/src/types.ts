@@ -1,4 +1,6 @@
-export interface Skill { id?: number; name: string; }
+export interface Skill { id?: number; name: string; category_id?: number | null; }
+
+export interface SkillCategory { id?: number; name: string; ord?: number; }
 
 export interface ExperienceEntity {
   id?: number;

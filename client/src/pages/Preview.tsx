@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { exportPdf, getResume, listContacts, listSkills } from '../api';
-import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill } from '../types';
+import { exportPdf, getResume, listContacts, listSkills, listSkillCategories } from '../api';
+import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill, SkillCategory } from '../types';
 import { MdEmail, MdPhone, MdLocationOn, MdHome, MdComputer } from 'react-icons/md';
 import { FaGithub, FaLinkedin, FaGlobe } from 'react-icons/fa';
 import { HiOfficeBuilding } from 'react-icons/hi';
@@ -12,6 +12,7 @@ export default function Preview(){
   const [data,setData] = useState<ResumeData|null>(null);
   const [contacts,setContacts] = useState<Array<ContactInfo & {id: number}>>([]);
   const [skills, setSkills] = useState<Skill[]>([]);
+  const [categories, setCategories] = useState<SkillCategory[]>([]);
   const [hasOverflow, setHasOverflow] = useState(false);
   const [search] = useSearchParams();
   const pdfMode = useMemo(()=> search.get('pdf') === '1', [search]);
@@ -21,11 +22,13 @@ export default function Preview(){
       Promise.all([
         getResume(Number(id)),
         listContacts(),
-        listSkills()
-      ]).then(([resume, contactsList, skillsList]) => {
+        listSkills(),
+        listSkillCategories()
+      ]).then(([resume, contactsList, skillsList, categoriesList]) => {
         setData(resume);
         setContacts(contactsList);
         setSkills(skillsList);
+        setCategories(categoriesList);
         // Check for overflow after render
         setTimeout(() => {
           if (ref.current) {
@@ -94,6 +97,49 @@ export default function Preview(){
       case 'hybrid': return 'Hybrid';
       default: return '';
     }
+  };
+
+  const renderSkillsByCategory = () => {
+    const selectedSkillsData = data!.skills.map(s => {
+      const skillId = typeof s === 'number' ? s : (typeof s === 'object' ? (s as Skill)?.id : null);
+      const skill = skillId ? skills.find(sk => sk.id === skillId) : null;
+      return skill;
+    }).filter(Boolean) as Skill[];
+
+    const groupedSkills: { [categoryId: string]: Skill[] } = {};
+    const uncategorized: Skill[] = [];
+
+    selectedSkillsData.forEach(skill => {
+      if (skill.category_id) {
+        const catId = String(skill.category_id);
+        if (!groupedSkills[catId]) groupedSkills[catId] = [];
+        groupedSkills[catId].push(skill);
+      } else {
+        uncategorized.push(skill);
+      }
+    });
+
+    const sortedCategories = categories
+      .filter(cat => groupedSkills[String(cat.id!)])
+      .sort((a, b) => (a.ord || 0) - (b.ord || 0));
+
+    return (
+      <div className="skills-list">
+        {sortedCategories.map((cat, idx) => (
+          <div key={cat.id} style={{marginBottom: idx < sortedCategories.length - 1 || uncategorized.length > 0 ? 8 : 0}}>
+            <div style={{fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 3}}>{cat.name}</div>
+            <div style={{fontSize: 12, lineHeight: 1.5, color: '#333'}}>
+              {groupedSkills[String(cat.id!)].map(skill => skill.name).join(', ')}
+            </div>
+          </div>
+        ))}
+        {uncategorized.length > 0 && (
+          <div style={{fontSize: 12, lineHeight: 1.5, color: '#333'}}>
+            {uncategorized.map(skill => skill.name).join(', ')}
+          </div>
+        )}
+      </div>
+    );
   };
 
   if(!data) return <div style={{padding:'2rem'}}>Loading...</div>
@@ -174,13 +220,9 @@ export default function Preview(){
               <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
               <section>
                 <h2>Skills</h2>
-                <ul className="skills">
-                  {data.skills.map((s,i)=>{
-                    const skillId = typeof s === 'number' ? s : (typeof s === 'object' ? (s as Skill)?.id : null);
-                    const skillName = skillId ? skills.find(sk => sk.id === skillId)?.name : (typeof s === 'string' ? s : (s as Skill)?.name);
-                    return skillName ? (<li key={i}>{skillName}</li>) : null;
-                  })}
-                </ul>
+                <div className="skills-categories">
+                  {renderSkillsByCategory()}
+                </div>
               </section>
               <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
               <section>
@@ -319,13 +361,9 @@ export default function Preview(){
               <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
               <section>
                 <h2>Skills</h2>
-                <ul className="skills">
-                  {data.skills.map((s,i)=>{
-                    const skillId = typeof s === 'number' ? s : (typeof s === 'object' ? (s as Skill)?.id : null);
-                    const skillName = skillId ? skills.find(sk => sk.id === skillId)?.name : (typeof s === 'string' ? s : (s as Skill)?.name);
-                    return skillName ? (<li key={i}>{skillName}</li>) : null;
-                  })}
-                </ul>
+                <div className="skills-categories">
+                  {renderSkillsByCategory()}
+                </div>
               </section>
               <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
               <section>
