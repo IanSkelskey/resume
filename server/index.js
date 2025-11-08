@@ -11,7 +11,8 @@ const {
   listProjects, createProjectEntity, deleteProject,
   listSocials, createSocialEntity, deleteSocial,
   listContacts, createContactEntity, updateContact, deleteContact,
-  seedIfEmpty
+  seedIfEmpty,
+  getTableNames, getTableSchema, queryTable, deleteRecord, updateRecord, insertRecord
 } = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5174;
@@ -19,7 +20,7 @@ const PORT = process.env.PORT || 5174;
 app.use(cors());
 app.use(express.json());
 
-seedIfEmpty();
+// seedIfEmpty(); // Commented out - database starts empty
 
 app.get('/api/health', (_,res)=>res.json({status:'ok'}));
 app.get('/api/resumes', (_,res)=> res.json(listResumes()));
@@ -89,5 +90,22 @@ app.get('/api/contacts', (_,res)=> res.json(listContacts()));
 app.post('/api/contacts', (req,res)=> res.json(createContactEntity(req.body)));
 app.put('/api/contacts/:id', (req,res)=> { updateContact(Number(req.params.id), req.body); res.json({success:true}); });
 app.delete('/api/contacts/:id', (req,res)=> { deleteContact(Number(req.params.id)); res.json({success:true}); });
+
+// Database admin endpoints
+app.get('/api/db/tables', (_,res)=> res.json(getTableNames()));
+app.get('/api/db/tables/:name/schema', (req,res)=> res.json(getTableSchema(req.params.name)));
+app.get('/api/db/tables/:name/records', (req,res)=> res.json(queryTable(req.params.name)));
+app.post('/api/db/tables/:name/records', (req,res)=> {
+  const id = insertRecord(req.params.name, req.body);
+  res.json({success:true, id});
+});
+app.put('/api/db/tables/:name/records/:id', (req,res)=> {
+  updateRecord(req.params.name, Number(req.params.id), req.body);
+  res.json({success:true});
+});
+app.delete('/api/db/tables/:name/records/:id', (req,res)=> {
+  deleteRecord(req.params.name, Number(req.params.id));
+  res.json({success:true});
+});
 
 app.listen(PORT, ()=> console.log(`Server running on ${PORT}`));

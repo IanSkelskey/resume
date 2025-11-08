@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { MdDashboard, MdWork, MdLibraryBooks, MdVisibility } from 'react-icons/md';
+import { MdDashboard, MdWork, MdLibraryBooks, MdVisibility, MdStorage } from 'react-icons/md';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -12,6 +12,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const navItems = [
     { path: '/', label: 'Resumes', icon: <MdDashboard /> },
     { path: '/library', label: 'Library', icon: <MdLibraryBooks /> },
+    { path: '/database', label: 'Database', icon: <MdStorage /> },
   ];
 
   const isActive = (path: string) => {

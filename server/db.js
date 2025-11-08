@@ -347,6 +347,39 @@ function seedIfEmpty(){
   return resume;
 }
 
+// Database admin functions
+function getTableNames(){
+  const rows = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all();
+  return rows.map(r=>r.name);
+}
+
+function getTableSchema(tableName){
+  return db.prepare(`PRAGMA table_info(${tableName})`).all();
+}
+
+function queryTable(tableName){
+  return db.prepare(`SELECT * FROM ${tableName}`).all();
+}
+
+function deleteRecord(tableName, id){
+  db.prepare(`DELETE FROM ${tableName} WHERE id = ?`).run(id);
+}
+
+function updateRecord(tableName, id, data){
+  const cols = getTableSchema(tableName).map(c=>c.name).filter(c=>c!=='id');
+  const sets = cols.map(c=>`${c} = ?`).join(', ');
+  const values = cols.map(c=>data[c] ?? null);
+  db.prepare(`UPDATE ${tableName} SET ${sets} WHERE id = ?`).run(...values, id);
+}
+
+function insertRecord(tableName, data){
+  const cols = getTableSchema(tableName).map(c=>c.name).filter(c=>c!=='id');
+  const placeholders = cols.map(_=>'?').join(', ');
+  const values = cols.map(c=>data[c] ?? null);
+  const info = db.prepare(`INSERT INTO ${tableName} (${cols.join(', ')}) VALUES (${placeholders})`).run(...values);
+  return info.lastInsertRowid;
+}
+
 module.exports = {
   // resume aggregates
   list: listResumes,
@@ -360,5 +393,7 @@ module.exports = {
   listProjects, createProjectEntity, deleteProject,
   listSocials, createSocialEntity, deleteSocial,
   listContacts, createContactEntity, updateContact, deleteContact,
-  seedIfEmpty
+  seedIfEmpty,
+  // database admin
+  getTableNames, getTableSchema, queryTable, deleteRecord, updateRecord, insertRecord
 };

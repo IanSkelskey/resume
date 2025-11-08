@@ -110,3 +110,42 @@ export async function updateContact(id: number, contact: ContactInfo): Promise<v
 export async function deleteContact(id: number): Promise<void> {
   await fetch(`${base}/contacts/${id}`, { method:'DELETE' });
 }
+
+// Database admin endpoints
+export async function getTableNames(): Promise<string[]> {
+  const r = await fetch(`${base}/db/tables`);
+  return r.json();
+}
+
+export async function getTableSchema(tableName: string): Promise<any[]> {
+  const r = await fetch(`${base}/db/tables/${tableName}/schema`);
+  return r.json();
+}
+
+export async function getTableRecords(tableName: string): Promise<any[]> {
+  const r = await fetch(`${base}/db/tables/${tableName}/records`);
+  return r.json();
+}
+
+export async function createTableRecord(tableName: string, data: any): Promise<{success: boolean; id: number}> {
+  const r = await fetch(`${base}/db/tables/${tableName}/records`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+  return r.json();
+}
+
+export async function updateTableRecord(tableName: string, id: number, data: any): Promise<{success: boolean}> {
+  const r = await fetch(`${base}/db/tables/${tableName}/records/${id}`, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+  return r.json();
+}
+
+export async function deleteTableRecord(tableName: string, id: number): Promise<{success: boolean}> {
+  const r = await fetch(`${base}/db/tables/${tableName}/records/${id}`, { method: 'DELETE' });
+  return r.json();
+}
