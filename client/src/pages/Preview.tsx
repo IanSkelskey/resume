@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { exportPdf, getResume, listContacts } from '../api';
+import { exportPdf, getResume, listContacts, listSkills } from '../api';
 import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill } from '../types';
 import { MdEmail, MdPhone, MdLocationOn } from 'react-icons/md';
 import { FaGithub, FaLinkedin, FaGlobe } from 'react-icons/fa';
@@ -10,13 +10,21 @@ export default function Preview(){
   const { id } = useParams();
   const [data,setData] = useState<ResumeData|null>(null);
   const [contacts,setContacts] = useState<Array<ContactInfo & {id: number}>>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
   const [search] = useSearchParams();
   const pdfMode = useMemo(()=> search.get('pdf') === '1', [search]);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(()=>{ 
     if(id) {
-      getResume(Number(id)).then(setData);
-      listContacts().then(setContacts);
+      Promise.all([
+        getResume(Number(id)),
+        listContacts(),
+        listSkills()
+      ]).then(([resume, contactsList, skillsList]) => {
+        setData(resume);
+        setContacts(contactsList);
+        setSkills(skillsList);
+      });
     }
   },[id]);
 
@@ -137,8 +145,9 @@ export default function Preview(){
                 <h2>Skills</h2>
                 <ul className="skills">
                   {data.skills.map((s,i)=>{
-                    const label = typeof s === 'string' ? s : typeof s === 'number' ? String(s) : (s as Skill).name;
-                    return (<li key={i}>{label}</li>);
+                    const skillId = typeof s === 'number' ? s : (typeof s === 'object' ? (s as Skill)?.id : null);
+                    const skillName = skillId ? skills.find(sk => sk.id === skillId)?.name : (typeof s === 'string' ? s : (s as Skill)?.name);
+                    return skillName ? (<li key={i}>{skillName}</li>) : null;
                   })}
                 </ul>
               </section>
@@ -236,8 +245,9 @@ export default function Preview(){
                 <h2>Skills</h2>
                 <ul className="skills">
                   {data.skills.map((s,i)=>{
-                    const label = typeof s === 'string' ? s : typeof s === 'number' ? String(s) : (s as Skill).name;
-                    return (<li key={i}>{label}</li>);
+                    const skillId = typeof s === 'number' ? s : (typeof s === 'object' ? (s as Skill)?.id : null);
+                    const skillName = skillId ? skills.find(sk => sk.id === skillId)?.name : (typeof s === 'string' ? s : (s as Skill)?.name);
+                    return skillName ? (<li key={i}>{skillName}</li>) : null;
                   })}
                 </ul>
               </section>

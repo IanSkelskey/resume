@@ -154,19 +154,29 @@ export default function Edit(){
           <div style={{marginBottom:16}}>
             <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
               {skills.map(s=>{
-                const selected = data.skills.some(x=> (typeof x==='object' ? (x as any).id : x) === (s.id ?? s.name) || x===s.name);
+                const selected = data.skills.some(x=> {
+                  const xId = typeof x==='object' ? (x as any).id : (typeof x === 'number' ? x : null);
+                  return xId === s.id || x === s.name;
+                });
                 return <label key={s.id} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 12px',background:selected?'#e6f2ff':'#f5f5f5',border:selected?'1px solid #0066cc':'1px solid #ddd',borderRadius:6,cursor:'pointer',fontSize:14,transition:'all 0.2s'}}>
                   <input type="checkbox" checked={!!selected} onChange={(e)=>{
                     const current = data.skills.slice();
-                    if(e.target.checked){ current.push(s); }
-                    else { const idx = current.findIndex(x=> (typeof x==='object' ? (x as any).id : x) === (s.id ?? s.name) || x===s.name); if(idx>=0) current.splice(idx,1); }
+                    if(e.target.checked){ 
+                      current.push(s.id!); 
+                    } else { 
+                      const idx = current.findIndex(x=> {
+                        const xId = typeof x==='object' ? (x as any).id : (typeof x === 'number' ? x : null);
+                        return xId === s.id || x === s.name;
+                      }); 
+                      if(idx>=0) current.splice(idx,1); 
+                    }
                     update('skills', current);
                   }} style={{cursor:'pointer'}}/> <span style={{color:selected?'#0066cc':'#333'}}>{s.name}</span>
                 </label>
               })}
             </div>
           </div>
-          <form onSubmit={async (e)=>{ e.preventDefault(); const f=new FormData(e.currentTarget); const name=String(f.get('name')||'').trim(); if(!name) return; const created = await createSkill(name); update('skills', [...data.skills, created]); setSkills(await listSkills()); (e.target as HTMLFormElement).reset(); }} style={{display:'flex',gap:8,marginTop:12}}>
+          <form onSubmit={async (e)=>{ e.preventDefault(); const f=new FormData(e.currentTarget); const name=String(f.get('name')||'').trim(); if(!name) return; const created = await createSkill(name); update('skills', [...data.skills, created.id!]); setSkills(await listSkills()); (e.target as HTMLFormElement).reset(); }} style={{display:'flex',gap:8,marginTop:12}}>
             <input name="name" placeholder="Add new skill to library" style={{flex:1}}/>
             <button type="submit">Add Skill</button>
           </form>

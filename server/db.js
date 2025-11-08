@@ -163,7 +163,7 @@ function listResumes(){
 function getResumeAggregate(id){
   const base = db.prepare('SELECT * FROM resumes WHERE id = ?').get(id);
   if(!base) return null;
-  const skills = db.prepare(`SELECT s.name FROM resume_skills rs JOIN skills s ON s.id = rs.skill_id WHERE rs.resume_id = ? ORDER BY rs.ord`).all(id).map(r=>r.name);
+  const skills = db.prepare(`SELECT rs.skill_id as id FROM resume_skills rs WHERE rs.resume_id = ? ORDER BY rs.ord`).all(id).map(r=>r.id);
   const experiences = db.prepare(`SELECT e.* FROM resume_experiences re JOIN experiences e ON e.id = re.experience_id WHERE re.resume_id = ? ORDER BY re.ord`).all(id).map(r=>({
     role: r.role, company: r.company, location: r.location || undefined, start: r.start, end: r.end, bullets: JSON.parse(r.bullets||'[]')
   }));
