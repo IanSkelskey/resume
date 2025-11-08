@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { exportPdf, getResume, listContacts, listSkills } from '../api';
 import { ContactInfo, EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill } from '../types';
-import { MdEmail, MdPhone, MdLocationOn } from 'react-icons/md';
+import { MdEmail, MdPhone, MdLocationOn, MdHome, MdComputer } from 'react-icons/md';
 import { FaGithub, FaLinkedin, FaGlobe } from 'react-icons/fa';
+import { HiOfficeBuilding } from 'react-icons/hi';
 import DashboardLayout from '../components/DashboardLayout';
 
 export default function Preview(){
@@ -77,6 +78,24 @@ export default function Preview(){
     );
   };
 
+  const getWorkTypeIcon = (workType?: string) => {
+    switch(workType) {
+      case 'remote': return <MdHome className="work-type-icon" />;
+      case 'on-site': return <HiOfficeBuilding className="work-type-icon" />;
+      case 'hybrid': return <MdComputer className="work-type-icon" />;
+      default: return null;
+    }
+  };
+
+  const getWorkTypeLabel = (workType?: string) => {
+    switch(workType) {
+      case 'remote': return 'Remote';
+      case 'on-site': return 'On-Site';
+      case 'hybrid': return 'Hybrid';
+      default: return '';
+    }
+  };
+
   if(!data) return <div style={{padding:'2rem'}}>Loading...</div>
 
   if(pdfMode) {
@@ -101,10 +120,21 @@ export default function Preview(){
                   return (
                     <div key={i} className="exp-item">
                       <div className="exp-head">
-                        <strong>{ex.role}</strong> – {ex.company}
-                        {ex.location && ` (${ex.location})`}
-                        {ex.work_type && <span style={{marginLeft:6,fontSize:11,background:'#e5e7eb',padding:'2px 6px',borderRadius:4}}>{ex.work_type}</span>}
-                        <span className="dates">{ex.start} – {ex.end}</span>
+                        <div className="exp-head-left">
+                          <div className="exp-head-title">{ex.role} – {ex.company}</div>
+                          <div className="exp-head-location">
+                            {ex.work_type && (
+                              <span className="work-type-badge">
+                                {getWorkTypeIcon(ex.work_type)}
+                                {getWorkTypeLabel(ex.work_type)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="exp-head-right">
+                          <span className="dates">{ex.start} – {ex.end}</span>
+                          {ex.location && <span style={{fontSize:13,color:'var(--muted)'}}>{ex.location}</span>}
+                        </div>
                       </div>
                       {ex.bullets?.length>0 && (
                         <ul>
@@ -136,11 +166,12 @@ export default function Preview(){
                 </section>
               )}
             </main>
-            <aside>
+            <aside style={{background:'#f5f5f5',padding:'20px 20px'}}>
               <section>
                 <h2>Contact</h2>
                 <ul className="contact-list">{contacts.map(renderContact)}</ul>
               </section>
+              <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
               <section>
                 <h2>Skills</h2>
                 <ul className="skills">
@@ -151,6 +182,7 @@ export default function Preview(){
                   })}
                 </ul>
               </section>
+              <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
               <section>
                 <h2>Education</h2>
                 {data.education.map((e,i)=>{
@@ -158,7 +190,8 @@ export default function Preview(){
                   if(!ed) return null;
                   return (
                     <div key={i} className="edu-item">
-                      <div><strong>{ed.degree}</strong>, {ed.institution} ({ed.end})</div>
+                      <strong>{ed.degree}</strong>
+                      <div className="edu-item-details">{ed.institution} • {ed.end}</div>
                     </div>
                   );
                 })}
@@ -232,10 +265,21 @@ export default function Preview(){
                   return (
                     <div key={i} className="exp-item">
                       <div className="exp-head">
-                        <strong>{ex.role}</strong> – {ex.company}
-                        {ex.location && ` (${ex.location})`}
-                        {ex.work_type && <span style={{marginLeft:6,fontSize:11,background:'#e5e7eb',padding:'2px 6px',borderRadius:4}}>{ex.work_type}</span>}
-                        <span className="dates">{ex.start} – {ex.end}</span>
+                        <div className="exp-head-left">
+                          <div className="exp-head-title">{ex.role} – {ex.company}</div>
+                          <div className="exp-head-location">
+                            {ex.work_type && (
+                              <span className="work-type-badge">
+                                {getWorkTypeIcon(ex.work_type)}
+                                {getWorkTypeLabel(ex.work_type)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="exp-head-right">
+                          <span className="dates">{ex.start} – {ex.end}</span>
+                          {ex.location && <span style={{fontSize:13,color:'var(--muted)'}}>{ex.location}</span>}
+                        </div>
                       </div>
                       {ex.bullets?.length>0 && (
                         <ul>
@@ -267,11 +311,12 @@ export default function Preview(){
                 </section>
               )}
             </main>
-            <aside>
+            <aside style={{background:'#f5f5f5',padding:'20px 20px'}}>
               <section>
                 <h2>Contact</h2>
                 <ul className="contact-list">{contacts.map(renderContact)}</ul>
               </section>
+              <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
               <section>
                 <h2>Skills</h2>
                 <ul className="skills">
@@ -282,6 +327,7 @@ export default function Preview(){
                   })}
                 </ul>
               </section>
+              <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
               <section>
                 <h2>Education</h2>
                 {data.education.map((e,i)=>{
@@ -289,7 +335,8 @@ export default function Preview(){
                   if(!ed) return null;
                   return (
                     <div key={i} className="edu-item">
-                      <div><strong>{ed.degree}</strong>, {ed.institution} ({ed.end})</div>
+                      <strong>{ed.degree}</strong>
+                      <div className="edu-item-details">{ed.institution} • {ed.end}</div>
                     </div>
                   );
                 })}

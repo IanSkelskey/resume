@@ -48,6 +48,5 @@ export const emptyResume: ResumeData = {
   skills: [],
   education: [],
   projects: [],
-  contact: {},
   socials: []
 };

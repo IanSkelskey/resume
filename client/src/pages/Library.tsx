@@ -3,6 +3,8 @@ import toast from 'react-hot-toast';
 import { listSkills, createSkill, listExperiences, createExperience, updateExperience, listEducation, createEducation, listProjects, createProject, listSocials, createSocial, listContacts, createContact, updateContact, deleteSkill, deleteExperience, deleteEducation, deleteProject, deleteSocial, deleteContact } from '../api';
 import type { Skill, ExperienceEntity, EducationEntity, ProjectEntity, SocialLink, ContactInfo } from '../types';
 import Modal, { ConfirmModal } from '../components/Modal';
+import { MdHome, MdComputer } from 'react-icons/md';
+import { HiOfficeBuilding } from 'react-icons/hi';
 
 export default function Library(){
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -16,6 +18,24 @@ export default function Library(){
   const [editingContact, setEditingContact] = useState<(ContactInfo & {id: number}) | null>(null);
   const [editingExperience, setEditingExperience] = useState<ExperienceEntity | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{show: boolean; message: string; onConfirm: () => void | Promise<void>}>({show: false, message: '', onConfirm: () => {}});
+
+  const getWorkTypeIcon = (workType?: string) => {
+    switch(workType) {
+      case 'remote': return <MdHome style={{fontSize:14}} />;
+      case 'on-site': return <HiOfficeBuilding style={{fontSize:14}} />;
+      case 'hybrid': return <MdComputer style={{fontSize:14}} />;
+      default: return null;
+    }
+  };
+
+  const getWorkTypeLabel = (workType?: string) => {
+    switch(workType) {
+      case 'remote': return 'Remote';
+      case 'on-site': return 'On-Site';
+      case 'hybrid': return 'Hybrid';
+      default: return '';
+    }
+  };
 
   useEffect(()=>{ refresh(); },[]);
   async function refresh(){
@@ -192,12 +212,28 @@ export default function Library(){
             <button onClick={() => setShowAddModal(true)}>+ Add Experience</button>
           </div>
           <ul>
-            {experiences.map(e=> (
-              <li key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <span><strong>{e.role}</strong> – {e.company} ({e.start}–{e.end})</span>
-                <div style={{display:'flex',gap:8}}>
-                  <button onClick={() => { setEditingExperience(e); setShowAddModal(true); }} style={{fontSize:12,padding:'4px 8px'}}>Edit</button>
-                  <button className="danger" onClick={() => handleDelete(`Delete experience "${e.role}"?`, async () => { await deleteExperience(e.id!); refresh(); })} style={{fontSize:12,padding:'4px 8px'}}>Delete</button>
+            {experiences.map(ex=>(
+              <li key={ex.id} style={{marginBottom:12,padding:12,background:'#f9fafb',borderRadius:6}}>
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'start',marginBottom:4}}>
+                  <div style={{flex:1}}>
+                    <div><strong>{ex.role}</strong> at {ex.company}</div>
+                    <div style={{fontSize:13,color:'#666',marginTop:2}}>
+                      {ex.work_type && (
+                        <span style={{display:'inline-flex',alignItems:'center',gap:4,background:'#e5e7eb',padding:'2px 8px',borderRadius:4,fontSize:12}}>
+                          {getWorkTypeIcon(ex.work_type)}
+                          {getWorkTypeLabel(ex.work_type)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:2}}>
+                    <div style={{fontSize:13,color:'#666',whiteSpace:'nowrap'}}>{ex.start} – {ex.end}</div>
+                    {ex.location && <div style={{fontSize:13,color:'#666',whiteSpace:'nowrap'}}>{ex.location}</div>}
+                  </div>
+                </div>
+                <div style={{marginTop:8,display:'flex',gap:8}}>
+                  <button onClick={() => { setEditingExperience(ex); setShowAddModal(true); }} style={{fontSize:13,padding:'4px 8px'}}>Edit</button>
+                  <button className="danger" onClick={() => handleDelete(`Are you sure you want to delete "${ex.role}" at ${ex.company}?`, async () => { await deleteExperience(ex.id!); refresh(); })} style={{fontSize:13,padding:'4px 8px'}}>Delete</button>
                 </div>
               </li>
             ))}
