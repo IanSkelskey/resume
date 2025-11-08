@@ -1,6 +1,16 @@
 const express = require('express');
 const cors = require('cors');
-const { list, get, create, update, seedIfEmpty } = require('./db');
+const {
+  list: listResumes,
+  get: getResume,
+  create: createResume,
+  update: updateResume,
+  listSkills, createSkillEntity,
+  listExperiences, createExperienceEntity,
+  listEducation, createEducationEntity,
+  listProjects, createProjectEntity,
+  seedIfEmpty
+} = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5174;
 
@@ -10,27 +20,27 @@ app.use(express.json());
 seedIfEmpty();
 
 app.get('/api/health', (_,res)=>res.json({status:'ok'}));
-app.get('/api/resumes', (_,res)=> res.json(list()));
+app.get('/api/resumes', (_,res)=> res.json(listResumes()));
 app.get('/api/resumes/:id', (req,res)=> {
-  const r = get(Number(req.params.id));
+  const r = getResume(Number(req.params.id));
   if(!r) return res.status(404).json({error:'Not found'});
   res.json(r);
 });
 app.post('/api/resumes', (req,res)=> {
-  const created = create(req.body);
+  const created = createResume(req.body);
   res.json(created);
 });
 app.put('/api/resumes/:id', (req,res)=> {
-  const existing = get(Number(req.params.id));
+  const existing = getResume(Number(req.params.id));
   if(!existing) return res.status(404).json({error:'Not found'});
-  const updated = update(Number(req.params.id), req.body);
+  const updated = updateResume(Number(req.params.id), req.body);
   res.json(updated);
 });
 
 // Puppeteer PDF export (identical layout & selectable text)
 app.get('/api/resumes/:id/pdf', async (req,res)=> {
   const id = Number(req.params.id);
-  const record = get(id);
+  const record = getResume(id);
   if(!record) return res.status(404).json({error:'Not found'});
   try {
     const puppeteer = require('puppeteer');
@@ -56,5 +66,15 @@ app.get('/api/resumes/:id/pdf', async (req,res)=> {
     res.status(500).json({error:'PDF generation failed'});
   }
 });
+
+// Library entity endpoints
+app.get('/api/skills', (_,res)=> res.json(listSkills()));
+app.post('/api/skills', (req,res)=> res.json(createSkillEntity(req.body)));
+app.get('/api/experiences', (_,res)=> res.json(listExperiences()));
+app.post('/api/experiences', (req,res)=> res.json(createExperienceEntity(req.body)));
+app.get('/api/education', (_,res)=> res.json(listEducation()));
+app.post('/api/education', (req,res)=> res.json(createEducationEntity(req.body)));
+app.get('/api/projects', (_,res)=> res.json(listProjects()));
+app.post('/api/projects', (req,res)=> res.json(createProjectEntity(req.body)));
 
 app.listen(PORT, ()=> console.log(`Server running on ${PORT}`));

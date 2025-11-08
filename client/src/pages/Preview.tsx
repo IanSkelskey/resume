@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { exportPdf, getResume } from '../api';
-import { ResumeData } from '../types';
+import { EducationEntity, ExperienceEntity, ProjectEntity, ResumeData, Skill } from '../types';
 
 export default function Preview(){
   const { id } = useParams();
@@ -39,29 +39,62 @@ export default function Preview(){
               </section>
               <section>
                 <h2>Experience</h2>
-                {data.experiences.map((x,i)=>(
-                  <div key={i} className="exp-item">
-                    <div className="exp-head"><strong>{x.role}</strong> – {x.company} <span className="dates">{x.start} – {x.end}</span></div>
-                    <ul>
-                      {x.bullets.map((b,j)=>(<li key={j}>{b}</li>))}
-                    </ul>
-                  </div>
-                ))}
+                {data.experiences.map((x,i)=>{
+                  const ex = (typeof x === 'number') ? null : (x as ExperienceEntity);
+                  if(!ex) return null;
+                  return (
+                    <div key={i} className="exp-item">
+                      <div className="exp-head"><strong>{ex.role}</strong> – {ex.company} <span className="dates">{ex.start} – {ex.end}</span></div>
+                      {ex.bullets?.length>0 && (
+                        <ul>
+                          {ex.bullets.map((b: string, j: number)=>(<li key={j}>{b}</li>))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
               </section>
               <section>
                 <h2>Education</h2>
-                {data.education.map((e,i)=>(
-                  <div key={i} className="edu-item">
-                    <div><strong>{e.degree}</strong>, {e.institution} ({e.end})</div>
-                  </div>
-                ))}
+                {data.education.map((e,i)=>{
+                  const ed = (typeof e === 'number') ? null : (e as EducationEntity);
+                  if(!ed) return null;
+                  return (
+                    <div key={i} className="edu-item">
+                      <div><strong>{ed.degree}</strong>, {ed.institution} ({ed.end})</div>
+                    </div>
+                  );
+                })}
               </section>
+              {data.projects && data.projects.length>0 && (
+                <section>
+                  <h2>Projects</h2>
+                  {data.projects.map((p,i)=>{
+                    const pr = (typeof p === 'number') ? null : (p as ProjectEntity);
+                    if(!pr) return null;
+                    return (
+                      <div key={i} className="proj-item">
+                        <div className="exp-head"><strong>{pr.name}</strong>{pr.link ? ` – ${pr.link}` : ''}</div>
+                        {pr.description && <p className="summary-text">{pr.description}</p>}
+                        {pr.bullets?.length>0 && (
+                          <ul>
+                            {pr.bullets.map((b: string, j: number)=>(<li key={j}>{b}</li>))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  })}
+                </section>
+              )}
             </main>
             <aside>
               <section>
                 <h2>Skills</h2>
                 <ul className="skills">
-                  {data.skills.map((s,i)=>(<li key={i}>{s}</li>))}
+                  {data.skills.map((s,i)=>{
+                    const label = typeof s === 'string' ? s : typeof s === 'number' ? String(s) : (s as Skill).name;
+                    return (<li key={i}>{label}</li>);
+                  })}
                 </ul>
               </section>
             </aside>

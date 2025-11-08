@@ -4,11 +4,13 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import App from './pages/App'
 import Edit from './pages/Edit'
 import Preview from './pages/Preview'
+import Library from './pages/Library'
 import './styles.css'
 
 const router = createBrowserRouter([
   { path: '/', element: <App /> },
   { path: '/edit/:id?', element: <Edit /> },
+  { path: '/library', element: <Library /> },
   { path: '/preview/:id', element: <Preview /> }
 ])
 

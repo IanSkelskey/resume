@@ -2,113 +2,280 @@ const Database = require('better-sqlite3');
 const path = require('path');
 
 const db = new Database(path.join(__dirname, 'data.db'));
-
 db.pragma('journal_mode = WAL');
 
+// Core entities
 db.prepare(`CREATE TABLE IF NOT EXISTS resumes (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   title TEXT NOT NULL,
   summary TEXT NOT NULL,
-  experiences TEXT NOT NULL,
-  skills TEXT NOT NULL,
-  education TEXT NOT NULL,
   updated_at TEXT NOT NULL
 )`).run();
 
-function rowToObj(row){
-  if(!row) return null;
-  return {
-    ...row,
-    experiences: JSON.parse(row.experiences),
-    skills: JSON.parse(row.skills),
-    education: JSON.parse(row.education)
-  };
+db.prepare(`CREATE TABLE IF NOT EXISTS skills (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE
+)`).run();
+
+db.prepare(`CREATE TABLE IF NOT EXISTS experiences (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  role TEXT NOT NULL,
+  company TEXT NOT NULL,
+  location TEXT,
+  start TEXT NOT NULL,
+  end TEXT NOT NULL,
+  bullets TEXT NOT NULL -- JSON array
+)`).run();
+
+db.prepare(`CREATE TABLE IF NOT EXISTS education (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  institution TEXT NOT NULL,
+  degree TEXT NOT NULL,
+  end TEXT NOT NULL
+)`).run();
+
+db.prepare(`CREATE TABLE IF NOT EXISTS projects (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  description TEXT,
+  link TEXT,
+  bullets TEXT NOT NULL -- JSON array
+)`).run();
+
+// Mapping tables (ordered composition)
+db.prepare(`CREATE TABLE IF NOT EXISTS resume_skills (
+  resume_id INTEGER NOT NULL,
+  skill_id INTEGER NOT NULL,
+  ord INTEGER NOT NULL,
+  PRIMARY KEY (resume_id, skill_id),
+  FOREIGN KEY (resume_id) REFERENCES resumes(id) ON DELETE CASCADE,
+  FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
+)`).run();
+
+db.prepare(`CREATE TABLE IF NOT EXISTS resume_experiences (
+  resume_id INTEGER NOT NULL,
+  experience_id INTEGER NOT NULL,
+  ord INTEGER NOT NULL,
+  PRIMARY KEY (resume_id, experience_id),
+  FOREIGN KEY (resume_id) REFERENCES resumes(id) ON DELETE CASCADE,
+  FOREIGN KEY (experience_id) REFERENCES experiences(id) ON DELETE CASCADE
+)`).run();
+
+db.prepare(`CREATE TABLE IF NOT EXISTS resume_education (
+  resume_id INTEGER NOT NULL,
+  education_id INTEGER NOT NULL,
+  ord INTEGER NOT NULL,
+  PRIMARY KEY (resume_id, education_id),
+  FOREIGN KEY (resume_id) REFERENCES resumes(id) ON DELETE CASCADE,
+  FOREIGN KEY (education_id) REFERENCES education(id) ON DELETE CASCADE
+)`).run();
+
+db.prepare(`CREATE TABLE IF NOT EXISTS resume_projects (
+  resume_id INTEGER NOT NULL,
+  project_id INTEGER NOT NULL,
+  ord INTEGER NOT NULL,
+  PRIMARY KEY (resume_id, project_id),
+  FOREIGN KEY (resume_id) REFERENCES resumes(id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+)`).run();
+
+// Helpers to create entities
+function createSkill(name){
+  try {
+    const info = db.prepare('INSERT INTO skills (name) VALUES (?)').run(name);
+    return info.lastInsertRowid;
+  } catch {
+    // unique constraint; fetch existing id
+    const row = db.prepare('SELECT id FROM skills WHERE name = ?').get(name);
+    return row?.id;
+  }
 }
 
-function list(){
-  const rows = db.prepare('SELECT * FROM resumes ORDER BY updated_at DESC').all();
-  return rows.map(rowToObj);
-}
-function get(id){
-  const row = db.prepare('SELECT * FROM resumes WHERE id = ?').get(id);
-  return rowToObj(row);
-}
-function create(payload){
-  const now = new Date().toISOString();
-  const stmt = db.prepare(`INSERT INTO resumes (name,title,summary,experiences,skills,education,updated_at) VALUES (?,?,?,?,?,?,?)`);
-  const info = stmt.run(
-    payload.name,
-    payload.title,
-    payload.summary,
-    JSON.stringify(payload.experiences||[]),
-    JSON.stringify(payload.skills||[]),
-    JSON.stringify(payload.education||[]),
-    now
+function createExperience(exp){
+  const info = db.prepare(`INSERT INTO experiences (role,company,location,start,end,bullets) VALUES (?,?,?,?,?,?)`).run(
+    exp.role, exp.company, exp.location || null, exp.start, exp.end, JSON.stringify(exp.bullets||[])
   );
-  return get(info.lastInsertRowid);
+  return info.lastInsertRowid;
 }
-function update(id, payload){
-  const now = new Date().toISOString();
-  const stmt = db.prepare(`UPDATE resumes SET name=?, title=?, summary=?, experiences=?, skills=?, education=?, updated_at=? WHERE id=?`);
-  stmt.run(
-    payload.name,
-    payload.title,
-    payload.summary,
-    JSON.stringify(payload.experiences||[]),
-    JSON.stringify(payload.skills||[]),
-    JSON.stringify(payload.education||[]),
-    now,
-    id
+
+function createEducation(ed){
+  const info = db.prepare(`INSERT INTO education (institution,degree,end) VALUES (?,?,?)`).run(
+    ed.institution, ed.degree, ed.end
   );
-  return get(id);
+  return info.lastInsertRowid;
 }
+
+function createProject(p){
+  const info = db.prepare(`INSERT INTO projects (name,description,link,bullets) VALUES (?,?,?,?)`).run(
+    p.name, p.description || null, p.link || null, JSON.stringify(p.bullets||[])
+  );
+  return info.lastInsertRowid;
+}
+
+function listResumes(){
+  return db.prepare('SELECT id,name,title,summary,updated_at FROM resumes ORDER BY updated_at DESC').all();
+}
+
+function getResumeAggregate(id){
+  const base = db.prepare('SELECT * FROM resumes WHERE id = ?').get(id);
+  if(!base) return null;
+  const skills = db.prepare(`SELECT s.name FROM resume_skills rs JOIN skills s ON s.id = rs.skill_id WHERE rs.resume_id = ? ORDER BY rs.ord`).all(id).map(r=>r.name);
+  const experiences = db.prepare(`SELECT e.* FROM resume_experiences re JOIN experiences e ON e.id = re.experience_id WHERE re.resume_id = ? ORDER BY re.ord`).all(id).map(r=>({
+    role: r.role, company: r.company, location: r.location || undefined, start: r.start, end: r.end, bullets: JSON.parse(r.bullets||'[]')
+  }));
+  const education = db.prepare(`SELECT ed.* FROM resume_education re JOIN education ed ON ed.id = re.education_id WHERE re.resume_id = ? ORDER BY re.ord`).all(id).map(r=>({
+    institution: r.institution, degree: r.degree, end: r.end
+  }));
+  const projects = db.prepare(`SELECT p.* FROM resume_projects rp JOIN projects p ON p.id = rp.project_id WHERE rp.resume_id = ? ORDER BY rp.ord`).all(id).map(r=>({
+    name: r.name, description: r.description || '', link: r.link || '', bullets: JSON.parse(r.bullets||'[]')
+  }));
+  return { id: base.id, name: base.name, title: base.title, summary: base.summary, experiences, skills, education, projects, updated_at: base.updated_at };
+}
+
+function createResume(payload){
+  const now = new Date().toISOString();
+  const info = db.prepare('INSERT INTO resumes (name,title,summary,updated_at) VALUES (?,?,?,?)').run(
+    payload.name, payload.title, payload.summary, now
+  );
+  const resumeId = info.lastInsertRowid;
+  // Attach compositions from either ids or objects/strings (back-compat with old client)
+  const skillsIn = payload.skills || [];
+  skillsIn.forEach((s, i)=>{
+    const sid = typeof s === 'number' ? s : createSkill(String(s));
+    db.prepare('INSERT OR IGNORE INTO resume_skills (resume_id, skill_id, ord) VALUES (?,?,?)').run(resumeId, sid, i);
+  });
+
+  const exps = payload.experiences || [];
+  exps.forEach((e,i)=>{
+    const id = typeof e === 'number' ? e : createExperience(e);
+    db.prepare('INSERT OR IGNORE INTO resume_experiences (resume_id, experience_id, ord) VALUES (?,?,?)').run(resumeId, id, i);
+  });
+
+  const edus = payload.education || [];
+  edus.forEach((e,i)=>{
+    const id = typeof e === 'number' ? e : createEducation(e);
+    db.prepare('INSERT OR IGNORE INTO resume_education (resume_id, education_id, ord) VALUES (?,?,?)').run(resumeId, id, i);
+  });
+
+  const projs = payload.projects || [];
+  projs.forEach((p,i)=>{
+    const id = typeof p === 'number' ? p : createProject(p);
+    db.prepare('INSERT OR IGNORE INTO resume_projects (resume_id, project_id, ord) VALUES (?,?,?)').run(resumeId, id, i);
+  });
+
+  return getResumeAggregate(resumeId);
+}
+
+function updateResume(id, payload){
+  const now = new Date().toISOString();
+  db.prepare('UPDATE resumes SET name=?, title=?, summary=?, updated_at=? WHERE id=?').run(
+    payload.name, payload.title, payload.summary, now, id
+  );
+  // Reset mappings then re-add based on provided arrays (if any provided; keep existing if not present)
+  if('skills' in payload){
+    db.prepare('DELETE FROM resume_skills WHERE resume_id = ?').run(id);
+    (payload.skills||[]).forEach((s,i)=>{
+      const sid = typeof s === 'number' ? s : createSkill(String(s));
+      db.prepare('INSERT OR IGNORE INTO resume_skills (resume_id, skill_id, ord) VALUES (?,?,?)').run(id, sid, i);
+    });
+  }
+  if('experiences' in payload){
+    db.prepare('DELETE FROM resume_experiences WHERE resume_id = ?').run(id);
+    (payload.experiences||[]).forEach((e,i)=>{
+      const eid = typeof e === 'number' ? e : createExperience(e);
+      db.prepare('INSERT OR IGNORE INTO resume_experiences (resume_id, experience_id, ord) VALUES (?,?,?)').run(id, eid, i);
+    });
+  }
+  if('education' in payload){
+    db.prepare('DELETE FROM resume_education WHERE resume_id = ?').run(id);
+    (payload.education||[]).forEach((e,i)=>{
+      const edid = typeof e === 'number' ? e : createEducation(e);
+      db.prepare('INSERT OR IGNORE INTO resume_education (resume_id, education_id, ord) VALUES (?,?,?)').run(id, edid, i);
+    });
+  }
+  if('projects' in payload){
+    db.prepare('DELETE FROM resume_projects WHERE resume_id = ?').run(id);
+    (payload.projects||[]).forEach((p,i)=>{
+      const pid = typeof p === 'number' ? p : createProject(p);
+      db.prepare('INSERT OR IGNORE INTO resume_projects (resume_id, project_id, ord) VALUES (?,?,?)').run(id, pid, i);
+    });
+  }
+  return getResumeAggregate(id);
+}
+
+// Library CRUD
+function listSkills(){ return db.prepare('SELECT * FROM skills ORDER BY name').all(); }
+function createSkillEntity(payload){ return { id: createSkill(payload.name), name: payload.name }; }
+function listExperiences(){
+  const rows = db.prepare('SELECT * FROM experiences ORDER BY id DESC').all();
+  return rows.map(r=>({ id:r.id, role:r.role, company:r.company, location:r.location||undefined, start:r.start, end:r.end, bullets: JSON.parse(r.bullets||'[]') }));
+}
+function createExperienceEntity(payload){ return { id: createExperience(payload), ...payload }; }
+function listEducation(){ return db.prepare('SELECT * FROM education ORDER BY id DESC').all(); }
+function createEducationEntity(payload){ return { id: createEducation(payload), ...payload }; }
+function listProjects(){
+  const rows = db.prepare('SELECT * FROM projects ORDER BY id DESC').all();
+  return rows.map(r=>({ id:r.id, name:r.name, description:r.description||'', link:r.link||'', bullets: JSON.parse(r.bullets||'[]') }));
+}
+function createProjectEntity(payload){ return { id: createProject(payload), ...payload }; }
 
 function seedIfEmpty(){
   const count = db.prepare('SELECT COUNT(*) as c FROM resumes').get().c;
   if(count>0) return;
-  const sample = {
-    name: 'Ian Skelskey',
-    title: 'Software Engineer',
-    summary: 'Innovative software engineer specializing in full-stack development with expertise in SQL, React, and RESTful APIs. Experienced in managing and optimizing large-scale library systems, contributing to open-source software, and developing client-centric solutions.',
-    experiences: [
-      {
-        role: 'Evergreen Systems Specialist',
-        company: 'Bibliomation, Inc. | Waterbury, CT',
-        start: 'July 2024',
-        end: 'Present',
-        bullets: [
-          'Managed and optimized the Evergreen SQL database for Connecticut\'s largest library consortium.',
-          'Developed custom configurations and features based on user feedback.',
-          'Provided Help Desk support, troubleshooting configurations, debugging, and deploying software patches.'
-        ]
-      },
-      {
-        role: 'Professional Tutor',
-        company: 'Tunxis Community College | Farmington, CT',
-        start: 'Aug 2018',
-        end: 'Present',
-        bullets: [
-          'Guided students in HTML, CSS, JavaScript, networking, and database topics to improve academic performance.'
-        ]
-      },
-      {
-        role: 'SI Leader',
-        company: 'Arizona State University | Remote',
-        start: 'Aug 2022',
-        end: 'Jan 2023',
-        bullets: [
-          'Led supplemental instruction for \"Distributed Software Systems\" covering client-server architecture, multithreading, and socket programming.'
-        ]
-      }
-    ],
-    skills: ['Java','JavaScript','TypeScript','React.js','JSON','HTML','CSS','Tailwind CSS','jQuery','SQL','PL/SQL','Firestore','AWS','Critical Thinking','Team Collaboration','Agile Development','Client Interaction'],
-    education: [
-      { degree: 'BS Software Engineering', institution: 'Arizona State University', end: 'Dec 2023' },
-      { degree: 'AS Mathematics/Computer Science', institution: 'CT State Tunxis', end: '2018' }
+
+  // Seed library
+  const sJava = createSkill('Java');
+  const sTS = createSkill('TypeScript');
+  const sReact = createSkill('React.js');
+  const sSQL = createSkill('SQL');
+
+  const e1 = createExperience({
+    role:'Evergreen Systems Specialist', company:'Bibliomation, Inc. | Waterbury, CT', start:'July 2024', end:'Present', bullets:[
+      'Managed and optimized the Evergreen SQL database for Connecticut\'s largest library consortium.',
+      'Developed custom configurations and features based on user feedback.',
+      'Provided Help Desk support, troubleshooting configurations, debugging, and deploying software patches.'
     ]
-  };
-  create(sample);
+  });
+  const e2 = createExperience({
+    role:'Professional Tutor', company:'Tunxis Community College | Farmington, CT', start:'Aug 2018', end:'Present', bullets:[
+      'Guided students in HTML, CSS, JavaScript, networking, and database topics to improve academic performance.'
+    ]
+  });
+  const e3 = createExperience({
+    role:'SI Leader', company:'Arizona State University | Remote', start:'Aug 2022', end:'Jan 2023', bullets:[
+      'Led supplemental instruction for "Distributed Software Systems" covering client-server architecture, multithreading, and socket programming.'
+    ]
+  });
+
+  const ed1 = createEducation({ institution:'Arizona State University', degree:'BS Software Engineering', end:'Dec 2023' });
+  const ed2 = createEducation({ institution:'CT State Tunxis', degree:'AS Mathematics/Computer Science', end:'2018' });
+
+  const p1 = createProject({ name:'Evergreen ILS Contribution', description:'Open-source features and docs contributions', link:'', bullets:[ 'Collaborated with the Evergreen community releasing features in 3.11 and 3.13.' ]});
+
+  // Seed resume composition
+  const resume = createResume({
+    name:'Ian Skelskey',
+    title:'Software Engineer',
+    summary:'Innovative software engineer specializing in full-stack development with expertise in SQL, React, and RESTful APIs. Experienced in managing and optimizing large-scale library systems, contributing to open-source software, and developing client-centric solutions.',
+    skills:[sJava, sTS, sReact, sSQL],
+    experiences:[e1,e2,e3],
+    education:[ed1,ed2],
+    projects:[p1]
+  });
+  return resume;
 }
 
-module.exports = { list, get, create, update, seedIfEmpty };
+module.exports = {
+  // resume aggregates
+  list: listResumes,
+  get: getResumeAggregate,
+  create: createResume,
+  update: updateResume,
+  // libraries
+  listSkills, createSkillEntity,
+  listExperiences, createExperienceEntity,
+  listEducation, createEducationEntity,
+  listProjects, createProjectEntity,
+  seedIfEmpty
+};
