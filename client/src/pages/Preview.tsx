@@ -41,14 +41,16 @@ export default function Preview(){
   },[id]);
 
   const renderContact = (c: ContactInfo & {id: number}) => {
+    const accentColor = data?.accent_color || '#8b4545';
     const getIcon = () => {
+      const iconStyle = {color: accentColor};
       switch(c.type) {
-        case 'email': return <MdEmail className="contact-icon" />;
-        case 'phone': return <MdPhone className="contact-icon" />;
-        case 'location': return <MdLocationOn className="contact-icon" />;
-        case 'github': return <FaGithub className="contact-icon" />;
-        case 'linkedin': return <FaLinkedin className="contact-icon" />;
-        case 'website': return <FaGlobe className="contact-icon" />;
+        case 'email': return <MdEmail className="contact-icon" style={iconStyle} />;
+        case 'phone': return <MdPhone className="contact-icon" style={iconStyle} />;
+        case 'location': return <MdLocationOn className="contact-icon" style={iconStyle} />;
+        case 'github': return <FaGithub className="contact-icon" style={iconStyle} />;
+        case 'linkedin': return <FaLinkedin className="contact-icon" style={iconStyle} />;
+        case 'website': return <FaGlobe className="contact-icon" style={iconStyle} />;
       }
     };
 
@@ -145,10 +147,11 @@ export default function Preview(){
   if(!data) return <div style={{padding:'2rem'}}>Loading...</div>
 
   if(pdfMode) {
+    const accentColor = data.accent_color || '#8b4545';
     return (
       <div className="preview-wrapper" style={{padding:0}}>
         <div ref={ref} id="resume-canvas" className="resume-sheet">
-          <div className="header-band" style={{textAlign:'center'}}>
+          <div className="header-band" style={{textAlign:'center',background:accentColor}}>
             <h1 className="name">{data.name}</h1>
             <div className="title">{data.title}</div>
           </div>
@@ -289,7 +292,7 @@ export default function Preview(){
               ✂
             </div>
           )}
-          <div className="header-band" style={{textAlign:'center'}}>
+          <div className="header-band" style={{textAlign:'center',background:data.accent_color || '#8b4545'}}>
             <h1 className="name">{data.name}</h1>
             <div className="title">{data.title}</div>
           </div>

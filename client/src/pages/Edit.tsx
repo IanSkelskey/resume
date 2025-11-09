@@ -104,6 +104,13 @@ export default function Edit(){
               <input value={data.title} onChange={e=>update('title', e.target.value)} style={{width:'100%'}} placeholder="Software Engineer" />
             </label>
             <label style={{display:'block'}}>
+              <div style={{fontWeight:500,marginBottom:6,color:'#444'}}>Accent Color</div>
+              <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                <input type="color" value={data.accent_color || '#8b4545'} onChange={e=>update('accent_color', e.target.value)} style={{width:60,height:40,cursor:'pointer',border:'1px solid #ddd',borderRadius:4}}/>
+                <input type="text" value={data.accent_color || '#8b4545'} onChange={e=>update('accent_color', e.target.value)} placeholder="#8b4545" style={{flex:1,fontFamily:'monospace'}}/>
+              </div>
+            </label>
+            <label style={{display:'block'}}>
               <div style={{fontWeight:500,marginBottom:6,color:'#444'}}>Professional Summary *</div>
               <textarea rows={5} value={data.summary} onChange={e=>update('summary', e.target.value)} style={{width:'100%',resize:'vertical'}} placeholder="Write a compelling summary of your professional background and key strengths..."/>
             </label>

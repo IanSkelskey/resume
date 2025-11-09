@@ -38,6 +38,7 @@ export interface ResumeData {
   projects: (ProjectEntity | number)[];
   contact?: ContactInfo;
   socials?: SocialLink[];
+  accent_color?: string;
   updated_at?: string;
 }
 
@@ -50,5 +51,6 @@ export const emptyResume: ResumeData = {
   skills: [],
   education: [],
   projects: [],
-  socials: []
+  socials: [],
+  accent_color: '#8b4545'
 };

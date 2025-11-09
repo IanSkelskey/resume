@@ -13,6 +13,7 @@ db.prepare(`CREATE TABLE IF NOT EXISTS resumes (
   summary TEXT NOT NULL,
   contact TEXT NOT NULL DEFAULT '{}', -- JSON object
   socials TEXT NOT NULL DEFAULT '[]', -- JSON array
+  accent_color TEXT NOT NULL DEFAULT '#8b4545',
   updated_at TEXT NOT NULL
 )`).run();
 // Ensure legacy DB upgraded to include label column
@@ -26,6 +27,11 @@ try {
   }
   if(!cols.some(c=>c.name==='socials')){
     db.prepare(`ALTER TABLE resumes ADD COLUMN socials TEXT NOT NULL DEFAULT '[]'`).run();
+  }
+  if(!cols.some(c=>c.name==='accent_color')){
+    db.prepare(`ALTER TABLE resumes ADD COLUMN accent_color TEXT NOT NULL DEFAULT '#8b4545'`).run();
+    // Ensure existing resumes have the default accent color
+    db.prepare(`UPDATE resumes SET accent_color = '#8b4545' WHERE accent_color IS NULL OR accent_color = ''`).run();
   }
 } catch (e){ /* ignore */ }
 
@@ -188,7 +194,7 @@ function createContact(c){
 }
 
 function listResumes(){
-  return db.prepare('SELECT id,name,label,title,summary,updated_at FROM resumes ORDER BY updated_at DESC').all();
+  return db.prepare('SELECT id,name,label,title,summary,accent_color,updated_at FROM resumes ORDER BY updated_at DESC').all();
 }
 
 function getResumeAggregate(id){
@@ -212,6 +218,7 @@ function getResumeAggregate(id){
     summary: base.summary,
     contact: JSON.parse(base.contact || '{}'),
     socials: JSON.parse(base.socials || '[]'),
+    accent_color: base.accent_color || '#8b4545',
     experiences, skills, education, projects,
     updated_at: base.updated_at
   };
@@ -219,9 +226,10 @@ function getResumeAggregate(id){
 
 function createResume(payload){
   const now = new Date().toISOString();
-  const info = db.prepare('INSERT INTO resumes (name,label,title,summary,contact,socials,updated_at) VALUES (?,?,?,?,?,?,?)').run(
+  const info = db.prepare('INSERT INTO resumes (name,label,title,summary,contact,socials,accent_color,updated_at) VALUES (?,?,?,?,?,?,?,?)').run(
     payload.name, payload.label || '', payload.title, payload.summary,
     JSON.stringify(payload.contact || {}), JSON.stringify(payload.socials || []),
+    payload.accent_color || '#8b4545',
     now
   );
   const resumeId = info.lastInsertRowid;
@@ -255,9 +263,10 @@ function createResume(payload){
 
 function updateResume(id, payload){
   const now = new Date().toISOString();
-  db.prepare('UPDATE resumes SET name=?, label=?, title=?, summary=?, contact=?, socials=?, updated_at=? WHERE id=?').run(
+  db.prepare('UPDATE resumes SET name=?, label=?, title=?, summary=?, contact=?, socials=?, accent_color=?, updated_at=? WHERE id=?').run(
     payload.name, payload.label || '', payload.title, payload.summary,
     JSON.stringify(payload.contact || {}), JSON.stringify(payload.socials || []),
+    payload.accent_color || '#8b4545',
     now, id
   );
   // Reset mappings then re-add based on provided arrays (if any provided; keep existing if not present)

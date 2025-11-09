@@ -24,7 +24,7 @@ export default function App() {
       ) : (
         <div style={{display:'grid',gap:'12px'}}>
           {resumes.map(r => (
-            <div key={r.id} className="card" style={{padding:'16px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div key={r.id} className="card" style={{padding:'16px',display:'flex',alignItems:'center',justifyContent:'space-between',borderLeft:`4px solid ${r.accent_color || '#8b4545'}`}}>
               <div>
                 <div style={{fontWeight:600,fontSize:'16px',marginBottom:'4px'}}>
                   {r.label || '(Untitled Resume)'}
