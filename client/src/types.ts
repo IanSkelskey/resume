@@ -39,6 +39,8 @@ export interface ResumeData {
   contact?: ContactInfo;
   socials?: SocialLink[];
   accent_color?: string;
+  sidebar_title?: string;
+  sidebar_text?: string;
   updated_at?: string;
 }
 
@@ -52,5 +54,7 @@ export const emptyResume: ResumeData = {
   education: [],
   projects: [],
   socials: [],
-  accent_color: '#8b4545'
+  accent_color: '#8b4545',
+  sidebar_title: '',
+  sidebar_text: ''
 };

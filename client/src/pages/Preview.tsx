@@ -227,6 +227,15 @@ export default function Preview(){
                   {renderSkillsByCategory()}
                 </div>
               </section>
+              {data.sidebar_title && data.sidebar_text && (
+                <>
+                  <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
+                  <section>
+                    <h2>{data.sidebar_title}</h2>
+                    <div style={{fontSize:13,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{data.sidebar_text}</div>
+                  </section>
+                </>
+              )}
               <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
               <section>
                 <h2>Education</h2>
@@ -368,6 +377,15 @@ export default function Preview(){
                   {renderSkillsByCategory()}
                 </div>
               </section>
+              {data.sidebar_title && data.sidebar_text && (
+                <>
+                  <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
+                  <section>
+                    <h2>{data.sidebar_title}</h2>
+                    <div style={{fontSize:13,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{data.sidebar_text}</div>
+                  </section>
+                </>
+              )}
               <hr style={{border:'none',borderTop:'1px solid #d0d0d0',margin:'16px 0'}}/>
               <section>
                 <h2>Education</h2>

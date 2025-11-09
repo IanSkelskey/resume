@@ -252,6 +252,21 @@ export default function Edit(){
         </section>
 
         <section style={{background:'white',padding:24,borderRadius:8,marginBottom:16,boxShadow:'0 1px 3px rgba(0,0,0,0.1)'}}>
+          <h3 style={{marginTop:0,marginBottom:20,fontSize:20,fontWeight:600,color:'#1a1a1a'}}>Custom Sidebar Section</h3>
+          <p style={{fontSize:13,color:'#666',marginBottom:16,lineHeight:1.5}}>Add an optional custom section that will appear in the sidebar between Skills and Education.</p>
+          <div style={{display:'grid',gap:16}}>
+            <label style={{display:'block'}}>
+              <div style={{fontWeight:500,marginBottom:6,color:'#444'}}>Section Title <span style={{fontWeight:400,color:'#888',fontSize:13}}>(optional)</span></div>
+              <input value={data.sidebar_title||''} onChange={e=>update('sidebar_title', e.target.value)} style={{width:'100%'}} placeholder="e.g., Certifications, Awards, Languages" />
+            </label>
+            <label style={{display:'block'}}>
+              <div style={{fontWeight:500,marginBottom:6,color:'#444'}}>Section Content <span style={{fontWeight:400,color:'#888',fontSize:13}}>(optional)</span></div>
+              <textarea rows={4} value={data.sidebar_text||''} onChange={e=>update('sidebar_text', e.target.value)} style={{width:'100%',resize:'vertical'}} placeholder="Add your custom content here..."/>
+            </label>
+          </div>
+        </section>
+
+        <section style={{background:'white',padding:24,borderRadius:8,marginBottom:16,boxShadow:'0 1px 3px rgba(0,0,0,0.1)'}}>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
             <h3 style={{margin:0,fontSize:20,fontWeight:600,color:'#1a1a1a'}}>Work Experience</h3>
             <button onClick={addExperience} style={{padding:'6px 12px',fontSize:13}}>+ Add New</button>
