@@ -80,6 +80,8 @@ section h2{font-family:Merriweather,serif;font-size:16px;margin:0 0 6px 0}
 .proj-item{margin-bottom:12px}
 .proj-item .exp-head{margin-bottom:4px}
 .proj-item .exp-head strong{font-weight:600;font-size:14px}
+.proj-item ul{margin:4px 0 8px 18px;padding-left:0;font-size:13px}
+.proj-item ul li{margin-bottom:3px;line-height:1.4}
 .edu-item{margin-bottom:10px;line-height:1.5}
 .edu-item strong{font-weight:600;font-size:13px;display:block;margin-bottom:2px}
 .edu-item-details{font-size:12px;color:var(--muted)}

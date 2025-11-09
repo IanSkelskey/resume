@@ -9,7 +9,7 @@ const {
   listSkillCategories, createSkillCategory, updateSkillCategory, deleteSkillCategory,
   listExperiences, createExperienceEntity, updateExperienceEntity, deleteExperience,
   listEducation, createEducationEntity, deleteEducation,
-  listProjects, createProjectEntity, deleteProject,
+  listProjects, createProjectEntity, updateProjectEntity, deleteProject,
   listSocials, createSocialEntity, deleteSocial,
   listContacts, createContactEntity, updateContact, deleteContact,
   seedIfEmpty,
@@ -89,6 +89,7 @@ app.post('/api/education', (req,res)=> res.json(createEducationEntity(req.body))
 app.delete('/api/education/:id', (req,res)=> { deleteEducation(Number(req.params.id)); res.json({success:true}); });
 app.get('/api/projects', (_,res)=> res.json(listProjects()));
 app.post('/api/projects', (req,res)=> res.json(createProjectEntity(req.body)));
+app.put('/api/projects/:id', (req,res)=> res.json(updateProjectEntity(Number(req.params.id), req.body)));
 app.delete('/api/projects/:id', (req,res)=> { deleteProject(Number(req.params.id)); res.json({success:true}); });
 app.get('/api/socials', (_,res)=> res.json(listSocials()));
 app.post('/api/socials', (req,res)=> res.json(createSocialEntity(req.body)));

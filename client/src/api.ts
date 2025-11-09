@@ -104,6 +104,10 @@ export async function createProject(p: ProjectEntity): Promise<ProjectEntity> {
   const r = await fetch(`${base}/projects`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(p)});
   return r.json();
 }
+export async function updateProject(id: number, p: ProjectEntity): Promise<ProjectEntity> {
+  const r = await fetch(`${base}/projects/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(p)});
+  return r.json();
+}
 export async function deleteProject(id: number): Promise<void> {
   await fetch(`${base}/projects/${id}`, { method:'DELETE' });
 }

@@ -325,6 +325,12 @@ function listProjects(){
   return rows.map(r=>({ id:r.id, name:r.name, description:r.description||'', link:r.link||'', bullets: JSON.parse(r.bullets||'[]') }));
 }
 function createProjectEntity(payload){ return { id: createProject(payload), ...payload }; }
+function updateProjectEntity(id, payload){
+  db.prepare('UPDATE projects SET name=?, description=?, link=?, bullets=? WHERE id=?').run(
+    payload.name, payload.description || null, payload.link || null, JSON.stringify(payload.bullets||[]), id
+  );
+  return { id, ...payload };
+}
 function deleteProject(id){ db.prepare('DELETE FROM projects WHERE id = ?').run(id); }
 function listSocials(){ return db.prepare('SELECT * FROM socials ORDER BY id DESC').all(); }
 function createSocialEntity(payload){ return { id: createSocial(payload), ...payload }; }
@@ -437,7 +443,7 @@ module.exports = {
   listSkillCategories, createSkillCategory, updateSkillCategory, deleteSkillCategory,
   listExperiences, createExperienceEntity, updateExperienceEntity, deleteExperience,
   listEducation, createEducationEntity, deleteEducation,
-  listProjects, createProjectEntity, deleteProject,
+  listProjects, createProjectEntity, updateProjectEntity, deleteProject,
   listSocials, createSocialEntity, deleteSocial,
   listContacts, createContactEntity, updateContact, deleteContact,
   seedIfEmpty,

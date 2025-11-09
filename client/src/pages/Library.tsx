@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { listSkills, createSkill, updateSkill, deleteSkill, listSkillCategories, createSkillCategory, updateSkillCategory, deleteSkillCategory, listExperiences, createExperience, updateExperience, listEducation, createEducation, listProjects, createProject, listSocials, createSocial, listContacts, createContact, updateContact, deleteExperience, deleteEducation, deleteProject, deleteSocial, deleteContact } from '../api';
+import { listSkills, createSkill, updateSkill, deleteSkill, listSkillCategories, createSkillCategory, updateSkillCategory, deleteSkillCategory, listExperiences, createExperience, updateExperience, listEducation, createEducation, listProjects, createProject, updateProject, listSocials, createSocial, listContacts, createContact, updateContact, deleteExperience, deleteEducation, deleteProject, deleteSocial, deleteContact } from '../api';
 import type { Skill, SkillCategory, ExperienceEntity, EducationEntity, ProjectEntity, SocialLink, ContactInfo } from '../types';
 import Modal, { ConfirmModal } from '../components/Modal';
 import { MdHome, MdComputer } from 'react-icons/md';
@@ -18,6 +18,7 @@ export default function Library(){
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingContact, setEditingContact] = useState<(ContactInfo & {id: number}) | null>(null);
   const [editingExperience, setEditingExperience] = useState<ExperienceEntity | null>(null);
+  const [editingProject, setEditingProject] = useState<ProjectEntity | null>(null);
   const [editingSkill, setEditingSkill] = useState<Skill | null>(null);
   const [editingCategory, setEditingCategory] = useState<SkillCategory | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{show: boolean; message: string; onConfirm: () => void | Promise<void>}>({show: false, message: '', onConfirm: () => {}});
@@ -116,14 +117,20 @@ export default function Library(){
     try {
       const fd = new FormData(e.currentTarget);
       const p: ProjectEntity = { name: String(fd.get('name')||''), description: String(fd.get('description')||''), link: String(fd.get('link')||''), bullets: String(fd.get('bullets')||'').split('\n').filter(Boolean) };
-      await createProject(p);
+      if (editingProject) {
+        await updateProject(editingProject.id!, p);
+        toast.success('Project updated successfully');
+        setEditingProject(null);
+      } else {
+        await createProject(p);
+        toast.success('Project added successfully');
+      }
       const form = e.currentTarget;
       if (form) form.reset();
       refresh();
       setShowAddModal(false);
-      toast.success('Project added successfully');
     } catch (error) {
-      toast.error('Failed to add project');
+      toast.error(editingProject ? 'Failed to update project' : 'Failed to add project');
     }
   }
   async function addSocial(e: React.FormEvent<HTMLFormElement>){
@@ -349,14 +356,44 @@ export default function Library(){
             <h3 style={{margin:0}}>Projects</h3>
             <button onClick={() => setShowAddModal(true)}>+ Add Project</button>
           </div>
-          <ul>
-            {projects.map(p=> (
-              <li key={p.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <span><strong>{p.name}</strong> {p.link ? `( ${p.link} )` : ''}</span>
-                <button className="danger" onClick={() => handleDelete(`Delete project "${p.name}"?`, async () => { await deleteProject(p.id!); refresh(); })} style={{fontSize:12,padding:'4px 8px'}}>Delete</button>
-              </li>
-            ))}
-          </ul>
+          {projects.length === 0 ? (
+            <div style={{padding:'40px',textAlign:'center',background:'#f9fafb',borderRadius:8,border:'1px dashed #d1d5db'}}>
+              <div style={{fontSize:32,marginBottom:8}}>📁</div>
+              <div style={{fontSize:14,color:'#666',marginBottom:4}}>No projects yet</div>
+              <div style={{fontSize:12,color:'#999'}}>Click "Add Project" to create your first project</div>
+            </div>
+          ) : (
+            <div style={{display:'grid',gap:12}}>
+              {projects.map(p=> (
+                <div key={p.id} className="card" style={{padding:16,background:'#fff',borderRadius:8,border:'1px solid #e5e7eb'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:16}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:16,fontWeight:600,color:'#1a1a1a',marginBottom:4}}>{p.name}</div>
+                      {p.description && (
+                        <div style={{fontSize:13,color:'#666',marginBottom:6,lineHeight:1.5}}>{p.description}</div>
+                      )}
+                      {p.link && (
+                        <a href={p.link} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:'#0066cc',textDecoration:'none',display:'inline-flex',alignItems:'center',gap:4}}>
+                          🔗 {p.link}
+                        </a>
+                      )}
+                      {p.bullets && p.bullets.length > 0 && (
+                        <ul style={{marginTop:8,marginBottom:0,paddingLeft:20,fontSize:13,color:'#555',lineHeight:1.6}}>
+                          {p.bullets.map((bullet, idx) => (
+                            <li key={idx}>{bullet}</li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <div style={{display:'flex',gap:8,flexShrink:0}}>
+                      <button onClick={()=>{ setEditingProject(p); setShowAddModal(true); }} style={{fontSize:12,padding:'6px 12px'}}>Edit</button>
+                      <button className="danger" onClick={() => handleDelete(`Delete project "${p.name}"?`, async () => { await deleteProject(p.id!); refresh(); })} style={{fontSize:12,padding:'6px 12px'}}>Delete</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
         )}
 
@@ -481,13 +518,13 @@ export default function Library(){
       )}
 
       {showAddModal && activeTab === 'projects' && (
-        <Modal isOpen={true} onClose={() => setShowAddModal(false)} title="Add New Project" size="large">
+        <Modal isOpen={true} onClose={() => { setShowAddModal(false); setEditingProject(null); }} title={editingProject ? "Edit Project" : "Add New Project"} size="large">
           <form onSubmit={addProject}>
-            <label>Name<input name="name" required /></label>
-            <label>Description<textarea name="description" rows={3}/></label>
-            <label>Link<input name="link" placeholder="https://..."/></label>
-            <label>Bullets<textarea name="bullets" rows={4} placeholder="One per line"/></label>
-            <button type="submit" style={{marginTop:16}}>Add Project</button>
+            <label>Name<input name="name" defaultValue={editingProject?.name} required /></label>
+            <label>Description<textarea name="description" rows={3} defaultValue={editingProject?.description}/></label>
+            <label>Link<input name="link" placeholder="https://..." defaultValue={editingProject?.link}/></label>
+            <label>Bullets<textarea name="bullets" rows={4} placeholder="One per line" defaultValue={editingProject?.bullets?.join('\n')}/></label>
+            <button type="submit" style={{marginTop:16}}>{editingProject ? 'Update Project' : 'Add Project'}</button>
           </form>
         </Modal>
       )}
