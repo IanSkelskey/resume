@@ -1,4 +1,5 @@
 const Database = require('better-sqlite3');
+const bcrypt = require('bcryptjs');
 const path = require('path');
 
 const db = new Database(path.join(__dirname, 'data.db'));
@@ -149,20 +150,20 @@ db.prepare(`CREATE TABLE IF NOT EXISTS resume_projects (
 )`).run();
 
 // Helpers to create entities
-function createSkill(name, categoryId = null){
+function createSkill(name, categoryId = null, userId = null){
   try {
-    const info = db.prepare('INSERT INTO skills (name, category_id) VALUES (?,?)').run(name, categoryId);
+    const info = db.prepare('INSERT INTO skills (name, category_id, user_id) VALUES (?,?,?)').run(name, categoryId, userId);
     return info.lastInsertRowid;
   } catch {
     // unique constraint; fetch existing id
-    const row = db.prepare('SELECT id FROM skills WHERE name = ?').get(name);
+    const row = db.prepare('SELECT id FROM skills WHERE name = ? AND user_id = ?').get(name, userId);
     return row?.id;
   }
 }
 
-function createExperience(exp){
-  const info = db.prepare(`INSERT INTO experiences (role,company,location,work_type,start,end,bullets) VALUES (?,?,?,?,?,?,?)`).run(
-    exp.role, exp.company, exp.location || null, exp.work_type || null, exp.start, exp.end, JSON.stringify(exp.bullets||[])
+function createExperience(exp, userId = null){
+  const info = db.prepare(`INSERT INTO experiences (role,company,location,work_type,start,end,bullets,user_id) VALUES (?,?,?,?,?,?,?,?)`).run(
+    exp.role, exp.company, exp.location || null, exp.work_type || null, exp.start, exp.end, JSON.stringify(exp.bullets||[]), userId
   );
   return info.lastInsertRowid;
 }
@@ -173,40 +174,40 @@ function updateExperience(id, exp){
   );
 }
 
-function createEducation(ed){
-  const info = db.prepare(`INSERT INTO education (institution,degree,end) VALUES (?,?,?)`).run(
-    ed.institution, ed.degree, ed.end
+function createEducation(ed, userId = null){
+  const info = db.prepare(`INSERT INTO education (institution,degree,end,user_id) VALUES (?,?,?,?)`).run(
+    ed.institution, ed.degree, ed.end, userId
   );
   return info.lastInsertRowid;
 }
 
-function createProject(p){
-  const info = db.prepare(`INSERT INTO projects (name,description,link,bullets) VALUES (?,?,?,?)`).run(
-    p.name, p.description || null, p.link || null, JSON.stringify(p.bullets||[])
+function createProject(p, userId = null){
+  const info = db.prepare(`INSERT INTO projects (name,description,link,bullets,user_id) VALUES (?,?,?,?,?)`).run(
+    p.name, p.description || null, p.link || null, JSON.stringify(p.bullets||[]), userId
   );
   return info.lastInsertRowid;
 }
 
-function createSocial(s){
-  const info = db.prepare(`INSERT INTO socials (label,url) VALUES (?,?)`).run(
-    s.label, s.url
+function createSocial(s, userId = null){
+  const info = db.prepare(`INSERT INTO socials (label,url,user_id) VALUES (?,?,?)`).run(
+    s.label, s.url, userId
   );
   return info.lastInsertRowid;
 }
 
-function createContact(c){
-  const info = db.prepare(`INSERT INTO contacts (type, value, label) VALUES (?, ?, ?)`).run(
-    c.type, c.value, c.label || null
+function createContact(c, userId = null){
+  const info = db.prepare(`INSERT INTO contacts (type, value, label, user_id) VALUES (?, ?, ?, ?)`).run(
+    c.type, c.value, c.label || null, userId
   );
   return info.lastInsertRowid;
 }
 
-function listResumes(){
-  return db.prepare('SELECT id,name,label,title,summary,accent_color,sidebar_title,sidebar_text,updated_at FROM resumes ORDER BY updated_at DESC').all();
+function listResumes(userId){
+  return db.prepare('SELECT id,name,label,title,summary,accent_color,sidebar_title,sidebar_text,updated_at FROM resumes WHERE user_id = ? ORDER BY updated_at DESC').all(userId);
 }
 
-function getResumeAggregate(id){
-  const base = db.prepare('SELECT * FROM resumes WHERE id = ?').get(id);
+function getResumeAggregate(id, userId){
+  const base = db.prepare('SELECT * FROM resumes WHERE id = ? AND user_id = ?').get(id, userId);
   if(!base) return null;
   const skills = db.prepare(`SELECT rs.skill_id as id FROM resume_skills rs WHERE rs.resume_id = ? ORDER BY rs.ord`).all(id).map(r=>r.id);
   const experiences = db.prepare(`SELECT e.* FROM resume_experiences re JOIN experiences e ON e.id = re.experience_id WHERE re.resume_id = ? ORDER BY re.ord`).all(id).map(r=>({
@@ -234,132 +235,167 @@ function getResumeAggregate(id){
   };
 }
 
-function createResume(payload){
+function createResume(payload, userId){
   const now = new Date().toISOString();
-  const info = db.prepare('INSERT INTO resumes (name,label,title,summary,contact,socials,accent_color,sidebar_title,sidebar_text,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)').run(
+  const info = db.prepare('INSERT INTO resumes (name,label,title,summary,contact,socials,accent_color,sidebar_title,sidebar_text,updated_at,user_id) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(
     payload.name, payload.label || '', payload.title, payload.summary,
     JSON.stringify(payload.contact || {}), JSON.stringify(payload.socials || []),
     payload.accent_color || '#8b4545',
     payload.sidebar_title || null,
     payload.sidebar_text || null,
-    now
+    now, userId
   );
   const resumeId = info.lastInsertRowid;
   // Attach compositions from either ids or objects/strings (back-compat with old client)
   const skillsIn = payload.skills || [];
   skillsIn.forEach((s, i)=>{
-    const sid = typeof s === 'number' ? s : createSkill(String(s));
+    const sid = typeof s === 'number' ? s : createSkill(String(s), null, userId);
     db.prepare('INSERT OR IGNORE INTO resume_skills (resume_id, skill_id, ord) VALUES (?,?,?)').run(resumeId, sid, i);
   });
 
   const exps = payload.experiences || [];
   exps.forEach((e,i)=>{
-    const id = typeof e === 'number' ? e : createExperience(e);
+    const id = typeof e === 'number' ? e : createExperience(e, userId);
     db.prepare('INSERT OR IGNORE INTO resume_experiences (resume_id, experience_id, ord) VALUES (?,?,?)').run(resumeId, id, i);
   });
 
   const edus = payload.education || [];
   edus.forEach((e,i)=>{
-    const id = typeof e === 'number' ? e : createEducation(e);
+    const id = typeof e === 'number' ? e : createEducation(e, userId);
     db.prepare('INSERT OR IGNORE INTO resume_education (resume_id, education_id, ord) VALUES (?,?,?)').run(resumeId, id, i);
   });
 
   const projs = payload.projects || [];
   projs.forEach((p,i)=>{
-    const id = typeof p === 'number' ? p : createProject(p);
+    const id = typeof p === 'number' ? p : createProject(p, userId);
     db.prepare('INSERT OR IGNORE INTO resume_projects (resume_id, project_id, ord) VALUES (?,?,?)').run(resumeId, id, i);
   });
 
-  return getResumeAggregate(resumeId);
+  return getResumeAggregate(resumeId, userId);
 }
 
-function updateResume(id, payload){
+function updateResume(id, payload, userId){
   const now = new Date().toISOString();
-  db.prepare('UPDATE resumes SET name=?, label=?, title=?, summary=?, contact=?, socials=?, accent_color=?, sidebar_title=?, sidebar_text=?, updated_at=? WHERE id=?').run(
+  db.prepare('UPDATE resumes SET name=?, label=?, title=?, summary=?, contact=?, socials=?, accent_color=?, sidebar_title=?, sidebar_text=?, updated_at=? WHERE id=? AND user_id=?').run(
     payload.name, payload.label || '', payload.title, payload.summary,
     JSON.stringify(payload.contact || {}), JSON.stringify(payload.socials || []),
     payload.accent_color || '#8b4545',
     payload.sidebar_title || null,
     payload.sidebar_text || null,
-    now, id
+    now, id, userId
   );
   // Reset mappings then re-add based on provided arrays (if any provided; keep existing if not present)
   if('skills' in payload){
     db.prepare('DELETE FROM resume_skills WHERE resume_id = ?').run(id);
     (payload.skills||[]).forEach((s,i)=>{
-      const sid = typeof s === 'number' ? s : createSkill(String(s));
+      const sid = typeof s === 'number' ? s : createSkill(String(s), null, userId);
       db.prepare('INSERT OR IGNORE INTO resume_skills (resume_id, skill_id, ord) VALUES (?,?,?)').run(id, sid, i);
     });
   }
   if('experiences' in payload){
     db.prepare('DELETE FROM resume_experiences WHERE resume_id = ?').run(id);
     (payload.experiences||[]).forEach((e,i)=>{
-      const eid = typeof e === 'number' ? e : (e.id || createExperience(e));
+      const eid = typeof e === 'number' ? e : (e.id || createExperience(e, userId));
       db.prepare('INSERT OR IGNORE INTO resume_experiences (resume_id, experience_id, ord) VALUES (?,?,?)').run(id, eid, i);
     });
   }
   if('education' in payload){
     db.prepare('DELETE FROM resume_education WHERE resume_id = ?').run(id);
     (payload.education||[]).forEach((e,i)=>{
-      const edid = typeof e === 'number' ? e : (e.id || createEducation(e));
+      const edid = typeof e === 'number' ? e : (e.id || createEducation(e, userId));
       db.prepare('INSERT OR IGNORE INTO resume_education (resume_id, education_id, ord) VALUES (?,?,?)').run(id, edid, i);
     });
   }
   if('projects' in payload){
     db.prepare('DELETE FROM resume_projects WHERE resume_id = ?').run(id);
     (payload.projects||[]).forEach((p,i)=>{
-      const pid = typeof p === 'number' ? p : (p.id || createProject(p));
+      const pid = typeof p === 'number' ? p : (p.id || createProject(p, userId));
       db.prepare('INSERT OR IGNORE INTO resume_projects (resume_id, project_id, ord) VALUES (?,?,?)').run(id, pid, i);
     });
   }
-  return getResumeAggregate(id);
+  return getResumeAggregate(id, userId);
 }
 
 // Library CRUD
-function listSkills(){ return db.prepare('SELECT * FROM skills ORDER BY category_id, name').all(); }
-function createSkillEntity(payload){ const id = createSkill(payload.name, payload.category_id); return db.prepare('SELECT * FROM skills WHERE id=?').get(id); }
-function updateSkill(id, payload){ db.prepare('UPDATE skills SET name=?, category_id=? WHERE id=?').run(payload.name, payload.category_id || null, id); return db.prepare('SELECT * FROM skills WHERE id=?').get(id); }
-function deleteSkill(id){ db.prepare('DELETE FROM skills WHERE id = ?').run(id); }
-function listSkillCategories(){ return db.prepare('SELECT * FROM skill_categories ORDER BY ord, name').all(); }
-function createSkillCategory(payload){ const info = db.prepare('INSERT INTO skill_categories (name, ord) VALUES (?,?)').run(payload.name, payload.ord || 0); return { id: info.lastInsertRowid, ...payload }; }
-function updateSkillCategory(id, payload){ db.prepare('UPDATE skill_categories SET name=?, ord=? WHERE id=?').run(payload.name, payload.ord || 0, id); return db.prepare('SELECT * FROM skill_categories WHERE id=?').get(id); }
-function deleteSkillCategory(id){ db.prepare('DELETE FROM skill_categories WHERE id=?').run(id); }
-function listExperiences(){
-  const rows = db.prepare('SELECT * FROM experiences ORDER BY id DESC').all();
+function listSkills(userId){ return db.prepare('SELECT * FROM skills WHERE user_id = ? ORDER BY category_id, name').all(userId); }
+function createSkillEntity(payload, userId){ const id = createSkill(payload.name, payload.category_id, userId); return db.prepare('SELECT * FROM skills WHERE id=?').get(id); }
+function updateSkill(id, payload, userId){ db.prepare('UPDATE skills SET name=?, category_id=? WHERE id=? AND user_id=?').run(payload.name, payload.category_id || null, id, userId); return db.prepare('SELECT * FROM skills WHERE id=?').get(id); }
+function deleteSkill(id, userId){ db.prepare('DELETE FROM skills WHERE id = ? AND user_id = ?').run(id, userId); }
+function listSkillCategories(userId){ return db.prepare('SELECT * FROM skill_categories WHERE user_id = ? ORDER BY ord, name').all(userId); }
+function createSkillCategory(payload, userId){ const info = db.prepare('INSERT INTO skill_categories (name, ord, user_id) VALUES (?,?,?)').run(payload.name, payload.ord || 0, userId); return { id: info.lastInsertRowid, ...payload }; }
+function updateSkillCategory(id, payload, userId){ db.prepare('UPDATE skill_categories SET name=?, ord=? WHERE id=? AND user_id=?').run(payload.name, payload.ord || 0, id, userId); return db.prepare('SELECT * FROM skill_categories WHERE id=?').get(id); }
+function deleteSkillCategory(id, userId){ db.prepare('DELETE FROM skill_categories WHERE id=? AND user_id=?').run(id, userId); }
+function listExperiences(userId){
+  const rows = db.prepare('SELECT * FROM experiences WHERE user_id = ? ORDER BY id DESC').all(userId);
   return rows.map(r=>({ id:r.id, role:r.role, company:r.company, location:r.location||undefined, work_type:r.work_type||undefined, start:r.start, end:r.end, bullets: JSON.parse(r.bullets||'[]') }));
 }
-function createExperienceEntity(payload){ return { id: createExperience(payload), ...payload }; }
-function updateExperienceEntity(id, payload){ updateExperience(id, payload); return { id, ...payload }; }
-function deleteExperience(id){ db.prepare('DELETE FROM experiences WHERE id = ?').run(id); }
-function listEducation(){ return db.prepare('SELECT * FROM education ORDER BY id DESC').all(); }
-function createEducationEntity(payload){ return { id: createEducation(payload), ...payload }; }
-function deleteEducation(id){ db.prepare('DELETE FROM education WHERE id = ?').run(id); }
-function listProjects(){
-  const rows = db.prepare('SELECT * FROM projects ORDER BY id DESC').all();
+function createExperienceEntity(payload, userId){ return { id: createExperience(payload, userId), ...payload }; }
+function updateExperienceEntity(id, payload, userId){ updateExperience(id, payload); return { id, ...payload }; }
+function deleteExperience(id, userId){ db.prepare('DELETE FROM experiences WHERE id = ? AND user_id = ?').run(id, userId); }
+function listEducation(userId){ return db.prepare('SELECT * FROM education WHERE user_id = ? ORDER BY id DESC').all(userId); }
+function createEducationEntity(payload, userId){ return { id: createEducation(payload, userId), ...payload }; }
+function deleteEducation(id, userId){ db.prepare('DELETE FROM education WHERE id = ? AND user_id = ?').run(id, userId); }
+function listProjects(userId){
+  const rows = db.prepare('SELECT * FROM projects WHERE user_id = ? ORDER BY id DESC').all(userId);
   return rows.map(r=>({ id:r.id, name:r.name, description:r.description||'', link:r.link||'', bullets: JSON.parse(r.bullets||'[]') }));
 }
-function createProjectEntity(payload){ return { id: createProject(payload), ...payload }; }
-function updateProjectEntity(id, payload){
-  db.prepare('UPDATE projects SET name=?, description=?, link=?, bullets=? WHERE id=?').run(
-    payload.name, payload.description || null, payload.link || null, JSON.stringify(payload.bullets||[]), id
+function createProjectEntity(payload, userId){ return { id: createProject(payload, userId), ...payload }; }
+function updateProjectEntity(id, payload, userId){
+  db.prepare('UPDATE projects SET name=?, description=?, link=?, bullets=? WHERE id=? AND user_id=?').run(
+    payload.name, payload.description || null, payload.link || null, JSON.stringify(payload.bullets||[]), id, userId
   );
   return { id, ...payload };
 }
-function deleteProject(id){ db.prepare('DELETE FROM projects WHERE id = ?').run(id); }
-function listSocials(){ return db.prepare('SELECT * FROM socials ORDER BY id DESC').all(); }
-function createSocialEntity(payload){ return { id: createSocial(payload), ...payload }; }
-function deleteSocial(id){ db.prepare('DELETE FROM socials WHERE id = ?').run(id); }
-function listContacts(){
-  const rows = db.prepare('SELECT * FROM contacts ORDER BY type, id').all();
+function deleteProject(id, userId){ db.prepare('DELETE FROM projects WHERE id = ? AND user_id = ?').run(id, userId); }
+function listSocials(userId){ return db.prepare('SELECT * FROM socials WHERE user_id = ? ORDER BY id DESC').all(userId); }
+function createSocialEntity(payload, userId){ return { id: createSocial(payload, userId), ...payload }; }
+function deleteSocial(id, userId){ db.prepare('DELETE FROM socials WHERE id = ? AND user_id = ?').run(id, userId); }
+function listContacts(userId){
+  const rows = db.prepare('SELECT * FROM contacts WHERE user_id = ? ORDER BY type, id').all(userId);
   return rows.map(r=>({ id:r.id, type:r.type, value:r.value, label:r.label||undefined }));
 }
-function createContactEntity(payload){ return { id: createContact(payload), ...payload }; }
-function updateContact(id, payload){
-  db.prepare('UPDATE contacts SET type = ?, value = ?, label = ? WHERE id = ?').run(
-    payload.type, payload.value, payload.label || null, id
+function createContactEntity(payload, userId){ return { id: createContact(payload, userId), ...payload }; }
+function updateContact(id, payload, userId){
+  db.prepare('UPDATE contacts SET type = ?, value = ?, label = ? WHERE id = ? AND user_id = ?').run(
+    payload.type, payload.value, payload.label || null, id, userId
   );
 }
-function deleteContact(id){ db.prepare('DELETE FROM contacts WHERE id = ?').run(id); }
+function deleteContact(id, userId){ db.prepare('DELETE FROM contacts WHERE id = ? AND user_id = ?').run(id, userId); }
+
+// User authentication functions
+function createUser(username, password, email = null){
+  const hashedPassword = bcrypt.hashSync(password, 10);
+  const now = new Date().toISOString();
+  const info = db.prepare(`INSERT INTO users (username, password, email, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`).run(
+    username, hashedPassword, email, now, now
+  );
+  return {
+    id: info.lastInsertRowid,
+    username,
+    email,
+    created_at: now,
+    updated_at: now
+  };
+}
+
+function getUserByUsername(username){
+  return db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+}
+
+function getUserById(id){
+  const user = db.prepare('SELECT id, username, email, created_at, updated_at FROM users WHERE id = ?').get(id);
+  return user;
+}
+
+function verifyPassword(plainPassword, hashedPassword){
+  return bcrypt.compareSync(plainPassword, hashedPassword);
+}
+
+function updateUserPassword(userId, newPassword){
+  const hashedPassword = bcrypt.hashSync(newPassword, 10);
+  const now = new Date().toISOString();
+  db.prepare('UPDATE users SET password = ?, updated_at = ? WHERE id = ?').run(hashedPassword, now, userId);
+}
 
 function seedIfEmpty(){
   const count = db.prepare('SELECT COUNT(*) as c FROM resumes').get().c;
@@ -461,6 +497,8 @@ module.exports = {
   listSocials, createSocialEntity, deleteSocial,
   listContacts, createContactEntity, updateContact, deleteContact,
   seedIfEmpty,
+  // user management
+  createUser, getUserByUsername, getUserById, verifyPassword, updateUserPassword,
   // database admin
   getTableNames, getTableSchema, queryTable, deleteRecord, updateRecord, insertRecord
 };

@@ -2,6 +2,14 @@ export interface Skill { id?: number; name: string; category_id?: number | null;
 
 export interface SkillCategory { id?: number; name: string; ord?: number; }
 
+export interface User {
+  id: number;
+  username: string;
+  email?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ExperienceEntity {
   id?: number;
   role: string;
