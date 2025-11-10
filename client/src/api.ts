@@ -23,6 +23,10 @@ export async function saveResume(data: ResumeData): Promise<ResumeData> {
   return r.json();
 }
 
+export async function deleteResume(id: number): Promise<void> {
+  await fetch(`${base}/resumes/${id}`, { method: 'DELETE' });
+}
+
 export async function exportPdf(id: number) {
   const r = await fetch(`${base}/resumes/${id}/pdf`);
   if (!r.ok) throw new Error('Failed PDF');

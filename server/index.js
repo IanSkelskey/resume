@@ -40,6 +40,12 @@ app.put('/api/resumes/:id', (req,res)=> {
   const updated = updateResume(Number(req.params.id), req.body);
   res.json(updated);
 });
+app.delete('/api/resumes/:id', (req,res)=> {
+  const existing = getResume(Number(req.params.id));
+  if(!existing) return res.status(404).json({error:'Not found'});
+  deleteRecord('resumes', Number(req.params.id));
+  res.json({success:true});
+});
 
 // Puppeteer PDF export (identical layout & selectable text)
 app.get('/api/resumes/:id/pdf', async (req,res)=> {

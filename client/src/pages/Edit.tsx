@@ -279,7 +279,7 @@ export default function Edit(){
                 return <label key={ex.id} style={{display:'inline-flex',alignItems:'flex-start',gap:8,padding:10,background:isSelected?'#e6f2ff':'#f8f9fa',border:isSelected?'1px solid #0066cc':'1px solid #e1e4e8',borderRadius:6,cursor:'pointer',maxWidth:300,fontSize:13,transition:'all 0.2s'}}>
                   <input type="checkbox" checked={!!isSelected} onChange={(e)=>{
                     const current = data.experiences.slice();
-                    if(e.target.checked){ current.push(ex); }
+                    if(e.target.checked){ current.push(ex.id!); }
                     else { const idx=current.findIndex(y=> (typeof y==='object'? (y as any).id : y) === ex.id); if(idx>=0) current.splice(idx,1); }
                     update('experiences', current);
                   }} style={{cursor:'pointer',marginTop:2}}/>
@@ -290,7 +290,7 @@ export default function Edit(){
                 </label>
               })}
             </div>
-            <form onSubmit={async (e)=>{ e.preventDefault(); const fd=new FormData(e.currentTarget); const exp: ExperienceEntity = { role:String(fd.get('role')||''), company:String(fd.get('company')||''), location:String(fd.get('location')||'')||undefined, work_type:(fd.get('work_type') as 'remote'|'on-site'|'hybrid')||undefined, start:String(fd.get('start')||''), end:String(fd.get('end')||''), bullets:String(fd.get('bullets')||'').split('\n').filter(Boolean)}; const created = await createExperience(exp); update('experiences', [...data.experiences, created]); setExperiences(await listExperiences()); (e.target as HTMLFormElement).reset(); }} style={{marginTop:16,padding:16,background:'#f8f9fa',borderRadius:8,border:'1px solid #e1e4e8'}}>
+            <form onSubmit={async (e)=>{ e.preventDefault(); const fd=new FormData(e.currentTarget); const exp: ExperienceEntity = { role:String(fd.get('role')||''), company:String(fd.get('company')||''), location:String(fd.get('location')||'')||undefined, work_type:(fd.get('work_type') as 'remote'|'on-site'|'hybrid')||undefined, start:String(fd.get('start')||''), end:String(fd.get('end')||''), bullets:String(fd.get('bullets')||'').split('\n').filter(Boolean)}; const created = await createExperience(exp); update('experiences', [...data.experiences, created.id!]); setExperiences(await listExperiences()); (e.target as HTMLFormElement).reset(); }} style={{marginTop:16,padding:16,background:'#f8f9fa',borderRadius:8,border:'1px solid #e1e4e8'}}>
               <div style={{fontSize:14,fontWeight:500,marginBottom:12,color:'#1a1a1a'}}>Quick add to library:</div>
               <div style={{display:'grid',gap:10}}>
                 <div style={{display:'grid',gridTemplateColumns:'2fr 2fr 1fr',gap:8}}>
@@ -361,7 +361,7 @@ export default function Edit(){
                 return <label key={ed.id} style={{display:'inline-flex',alignItems:'flex-start',gap:8,padding:10,background:isSelected?'#e6f2ff':'#f8f9fa',border:isSelected?'1px solid #0066cc':'1px solid #e1e4e8',borderRadius:6,cursor:'pointer',maxWidth:300,fontSize:13,transition:'all 0.2s'}}>
                   <input type="checkbox" checked={!!isSelected} onChange={(e)=>{
                     const current = data.education.slice();
-                    if(e.target.checked){ current.push(ed); }
+                    if(e.target.checked){ current.push(ed.id!); }
                     else { const idx=current.findIndex(y=> (typeof y==='object'? (y as any).id : y) === ed.id); if(idx>=0) current.splice(idx,1); }
                     update('education', current);
                   }} style={{cursor:'pointer',marginTop:2}}/>
@@ -372,7 +372,7 @@ export default function Edit(){
                 </label>
               })}
             </div>
-            <form onSubmit={async (e)=>{ e.preventDefault(); const fd=new FormData(e.currentTarget); const ed: EducationEntity = { institution:String(fd.get('institution')||''), degree:String(fd.get('degree')||''), end:String(fd.get('end')||'')}; const created = await createEducation(ed); update('education', [...data.education, created]); setEducation(await listEducation()); (e.target as HTMLFormElement).reset(); }} style={{marginTop:16,padding:16,background:'#f8f9fa',borderRadius:8,border:'1px solid #e1e4e8'}}>
+            <form onSubmit={async (e)=>{ e.preventDefault(); const fd=new FormData(e.currentTarget); const ed: EducationEntity = { institution:String(fd.get('institution')||''), degree:String(fd.get('degree')||''), end:String(fd.get('end')||'')}; const created = await createEducation(ed); update('education', [...data.education, created.id!]); setEducation(await listEducation()); (e.target as HTMLFormElement).reset(); }} style={{marginTop:16,padding:16,background:'#f8f9fa',borderRadius:8,border:'1px solid #e1e4e8'}}>
               <div style={{fontSize:14,fontWeight:500,marginBottom:12,color:'#1a1a1a'}}>Quick add to library:</div>
               <div style={{display:'grid',gridTemplateColumns:'2fr 2fr 1fr 100px',gap:8}}>
                 <input name="institution" placeholder="Institution *" required style={{fontSize:13}}/>
@@ -411,7 +411,7 @@ export default function Edit(){
                 return <label key={pr.id} style={{display:'inline-flex',alignItems:'flex-start',gap:8,padding:10,background:isSelected?'#e6f2ff':'#f8f9fa',border:isSelected?'1px solid #0066cc':'1px solid #e1e4e8',borderRadius:6,cursor:'pointer',maxWidth:300,fontSize:13,transition:'all 0.2s'}}>
                   <input type="checkbox" checked={!!isSelected} onChange={(e)=>{
                     const current = data.projects.slice();
-                    if(e.target.checked){ current.push(pr); }
+                    if(e.target.checked){ current.push(pr.id!); }
                     else { const idx=current.findIndex(y=> (typeof y==='object'? (y as any).id : y) === pr.id); if(idx>=0) current.splice(idx,1); }
                     update('projects', current);
                   }} style={{cursor:'pointer',marginTop:2}}/>
@@ -422,7 +422,7 @@ export default function Edit(){
                 </label>
               })}
             </div>
-            <form onSubmit={async (e)=>{ e.preventDefault(); const fd=new FormData(e.currentTarget); const p: ProjectEntity = { name:String(fd.get('name')||''), description:String(fd.get('description')||''), link:String(fd.get('link')||''), bullets:String(fd.get('bullets')||'').split('\n').filter(Boolean)}; const created = await createProject(p); update('projects', [...data.projects, created]); setProjects(await listProjects()); (e.target as HTMLFormElement).reset(); }} style={{marginTop:16,padding:16,background:'#f8f9fa',borderRadius:8,border:'1px solid #e1e4e8'}}>
+            <form onSubmit={async (e)=>{ e.preventDefault(); const fd=new FormData(e.currentTarget); const p: ProjectEntity = { name:String(fd.get('name')||''), description:String(fd.get('description')||''), link:String(fd.get('link')||''), bullets:String(fd.get('bullets')||'').split('\n').filter(Boolean)}; const created = await createProject(p); update('projects', [...data.projects, created.id!]); setProjects(await listProjects()); (e.target as HTMLFormElement).reset(); }} style={{marginTop:16,padding:16,background:'#f8f9fa',borderRadius:8,border:'1px solid #e1e4e8'}}>
               <div style={{fontSize:14,fontWeight:500,marginBottom:12,color:'#1a1a1a'}}>Quick add to library:</div>
               <div style={{display:'grid',gap:10}}>
                 <div style={{display:'grid',gridTemplateColumns:'2fr 2fr 100px',gap:8}}>

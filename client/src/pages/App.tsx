@@ -1,11 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { listResumes } from '../api';
+import { deleteResume, listResumes } from '../api';
 import { ResumeData } from '../types';
+import { toast } from 'react-hot-toast';
 
 export default function App() {
   const [resumes, setResumes] = useState<ResumeData[]>([]);
   useEffect(() => { listResumes().then(setResumes); }, []);
+  
+  async function handleDelete(id: number, label?: string) {
+    if (!confirm(`Are you sure you want to delete "${label || '(Untitled Resume)'}"? This cannot be undone.`)) {
+      return;
+    }
+    try {
+      await deleteResume(id);
+      setResumes(resumes.filter(r => r.id !== id));
+      toast.success('Resume deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete resume');
+    }
+  }
+  
   return (
     <div className="content-page">
       <div className="content-header">
@@ -40,6 +55,13 @@ export default function App() {
                 <Link to={`/preview/${r.id}`}>
                   <button style={{fontSize:'13px'}}>Preview</button>
                 </Link>
+                <button 
+                  className="danger" 
+                  onClick={() => handleDelete(r.id!, r.label)}
+                  style={{fontSize:'13px'}}
+                >
+                  Delete
+                </button>
               </div>
             </div>
           ))}
